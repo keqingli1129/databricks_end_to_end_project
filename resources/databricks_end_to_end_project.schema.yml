@@ -1,0 +1,9 @@
+# The Unity Catalog schema that the job and pipeline write to.
+# Managed by the bundle so it is created on deploy (and removed on `bundle destroy`).
+
+resources:
+  schemas:
+    databricks_end_to_end_project_schema:
+      catalog_name: ${var.catalog}
+      name: ${var.schema}
+      comment: Schema for databricks_end_to_end_project

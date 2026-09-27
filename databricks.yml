@@ -30,7 +30,7 @@ targets:
     workspace:
       host: https://dbc-b5c9918e-c2d2.cloud.databricks.com
     variables:
-      catalog: workspace
+      catalog: e2e_dev
       schema: ${workspace.current_user.short_name}
   prod:
     mode: production
@@ -39,7 +39,7 @@ targets:
       # We explicitly deploy to /Workspace/Users/keqingli1129@gmail.com to make sure we only have a single copy.
       root_path: /Workspace/Users/keqingli1129@gmail.com/.bundle/${bundle.name}/${bundle.target}
     variables:
-      catalog: workspace
+      catalog: e2e_prod
       schema: prod
     permissions:
       - user_name: keqingli1129@gmail.com

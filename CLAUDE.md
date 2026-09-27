@@ -8,7 +8,7 @@ Shared agent guidance lives in AGENTS.md (read the `databricks-core` skill befor
 
 ## Commands
 
-Everything uses `uv` (Python 3.12 only, per `pyproject.toml`) and the Databricks CLI. The `DEFAULT` and `FreeEdition` profiles both point at the bundle's workspace host. Don't pick one for the user; pass `--profile <name>` explicitly.
+Everything uses `uv` (Python 3.12 only, per `pyproject.toml`) and the Databricks CLI. The `DEFAULT` profile points at the bundle's workspace host. Pass `--profile <name>` explicitly, and don't pick a profile for the user.
 
 ```bash
 uv sync --dev                                   # install deps (pytest, ruff, databricks-connect 16.4, databricks-dlt)
@@ -39,7 +39,11 @@ Library code imports `spark` from `databricks.sdk.runtime`, so the same module w
 
 This is a Databricks Declarative Automation Bundle (formerly Asset Bundle) built from the `default-python` template. `databricks.yml` defines the bundle, pulls in `resources/*.yml`, and builds the package as a wheel with `uv build --wheel`.
 
-- **Targets**: `dev` is the default and uses `mode: development`. Resources get a `[dev <user>]` prefix, schedules are paused, and the schema is `${workspace.current_user.short_name}`. `prod` deploys to a fixed user root path with schema `prod`. Both targets use catalog `workspace`. Resources read the catalog and schema through `${var.catalog}` / `${var.schema}`, never hardcoded names.
+- **Targets**: `dev` is the default and uses `mode: development`. Resources get a `[dev <user>]` prefix, schedules are paused, and the schema is `${workspace.current_user.short_name}`. `prod` deploys to a fixed user root path with schema `prod`, and its daily schedule is active.
+- **Catalogs**: each target sets its own catalog: `dev` uses `e2e_dev` and `prod` uses `e2e_prod`, with no default. **Bundles can manage catalogs, but this project deliberately doesn't.** Create a target's catalog by hand before its first deploy, with the UI or `CREATE CATALOG`. Don't add a `catalogs` resource. There are two reasons:
+  1. **The bundle can't create them here.** This workspace uses Default Storage, so creating a catalog through the REST API, which is what bundles and `databricks catalogs create` use, fails with `Metastore storage root URL does not exist`.
+  2. **Keeping them unowned protects the data.** A catalog created by hand could be adopted into the bundle with `bundle deployment bind`, but then `bundle destroy` would delete it.
+- **Schema**: the bundle owns it (`resources/*.schema.yml`), so `bundle destroy` deletes the schema and its tables. In `dev`, development mode renames it to `dev_<user>_<schema>`, so the job and pipeline must refer to `${resources.schemas.databricks_end_to_end_project_schema.name}`, not `${var.schema}`.
 - **Shared package** (`src/databricks_end_to_end_project/`): plain Python that is built into the wheel. `main.py` is the `main` console entry point. It takes `--catalog`/`--schema` and runs `USE CATALOG/SCHEMA`.
 - **Lakeflow Declarative Pipeline** (`src/databricks_end_to_end_project_etl/`): serverless, defined in `resources/databricks_end_to_end_project_etl.pipeline.yml`. Every file under `transformations/**` is loaded by a glob, so a new dataset file is picked up without changing any config. Convention: one dataset per file, using `from pyspark import pipelines as dp` with `@dp.table`. Datasets refer to each other by bare table name, resolved in the pipeline's catalog and schema. The pipeline gets project dependencies through `--editable ${workspace.file_path}`. Because pipeline dependencies are cached during development, add pipeline-only libraries to the pipeline YAML's `environment`, not to `pyproject.toml`.
 - **Job** (`resources/sample_job.job.yml`): runs once a day. `notebook_task` (`src/sample_notebook.ipynb`) runs first. Then two tasks run in parallel: `python_wheel_task`, which calls `main` from `../dist/*.whl`, and `refresh_pipeline`, which runs the pipeline.
