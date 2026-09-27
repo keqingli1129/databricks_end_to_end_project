@@ -7,6 +7,8 @@ resources:
 
       trigger:
         # Run this job every day, exactly one day from the last run; see https://docs.databricks.com/api/workspace/jobs/create#trigger
+        # Paused until the job has been tested; change to UNPAUSED (and redeploy prod) to enable the schedule.
+        pause_status: PAUSED
         periodic:
           interval: 1
           unit: DAYS

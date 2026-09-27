@@ -39,7 +39,7 @@ Library code imports `spark` from `databricks.sdk.runtime`, so the same module w
 
 This is a Databricks Declarative Automation Bundle (formerly Asset Bundle) built from the `default-python` template. `databricks.yml` defines the bundle, pulls in `resources/*.yml`, and builds the package as a wheel with `uv build --wheel`.
 
-- **Targets**: `dev` is the default and uses `mode: development`. Resources get a `[dev <user>]` prefix, schedules are paused, and the schema is `${workspace.current_user.short_name}`. `prod` deploys to a fixed user root path with schema `prod`, and its daily schedule is active.
+- **Targets**: `dev` is the default and uses `mode: development`. Resources get a `[dev <user>]` prefix, schedules are paused, and the schema is `${workspace.current_user.short_name}`. `prod` deploys to a fixed user root path with schema `prod`. Its daily schedule is paused (`pause_status: PAUSED` in the job YAML). The UI can't pause bundle-managed jobs, so change it there and redeploy.
 - **Catalogs**: each target sets its own catalog: `dev` uses `e2e_dev` and `prod` uses `e2e_prod`, with no default. **Bundles can manage catalogs, but this project deliberately doesn't.** Create a target's catalog by hand before its first deploy, with the UI or `CREATE CATALOG`. Don't add a `catalogs` resource. There are two reasons:
   1. **The bundle can't create them here.** This workspace uses Default Storage, so creating a catalog through the REST API, which is what bundles and `databricks catalogs create` use, fails with `Metastore storage root URL does not exist`.
   2. **Keeping them unowned protects the data.** A catalog created by hand could be adopted into the bundle with `bundle deployment bind`, but then `bundle destroy` would delete it.
