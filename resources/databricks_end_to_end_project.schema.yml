@@ -1,9 +1,29 @@
-# The Unity Catalog schema that the job and pipeline write to.
-# Managed by the bundle so it is created on deploy (and removed on `bundle destroy`).
+# The Unity Catalog schemas for this project, all in ${var.catalog}.
+# Managed by the bundle so they are created on deploy (and removed on `bundle destroy`).
+# In dev, development mode prefixes each name with dev_<user>_.
 
 resources:
   schemas:
+    # Used by the template's sample job and pipeline.
     databricks_end_to_end_project_schema:
       catalog_name: ${var.catalog}
       name: ${var.schema}
       comment: Schema for databricks_end_to_end_project
+
+    # Medallion architecture (see docs/transcript_1.txt).
+    landing:
+      catalog_name: ${var.catalog}
+      name: landing
+      comment: Raw files as they arrive, before conversion to Delta
+    bronze:
+      catalog_name: ${var.catalog}
+      name: bronze
+      comment: Source data stored as-is in Delta
+    silver:
+      catalog_name: ${var.catalog}
+      name: silver
+      comment: Cleaned and standardized data
+    gold:
+      catalog_name: ${var.catalog}
+      name: gold
+      comment: Aggregated and joined data, ready for BI
