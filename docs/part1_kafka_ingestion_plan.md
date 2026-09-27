@@ -66,13 +66,13 @@
 
   **Check:** no errors, just the single-schema-per-file note. The schemas resolve to `e2e_dev.dev_keqingli1129_{landing,bronze,silver,gold}`.
 
-- [ ] **Step 1.3: Deploy to dev**
+- [x] **Step 1.3: Deploy to dev**
 
   **Do:** `env -u PYTHONPATH databricks bundle deploy --profile DEFAULT`
 
   **Check:** the output contains `Created schemas.landing`, `schemas.bronze`, `schemas.silver` and `schemas.gold`. In the Catalog UI, after a refresh, `e2e_dev` shows `dev_keqingli1129_landing`, `…_bronze`, `…_silver` and `…_gold`.
 
-- [ ] **Step 1.4: Check the files**
+- [x] **Step 1.4: Check the files**
 
   **Do:** `git status --short`
 
