@@ -163,7 +163,7 @@
   - `events.to_json(event: dict) -> bytes`
   - the constants `DEFAULT_CHASSIS_NUMBERS`, `MAX_SPEED_KMH`, `LAT_RANGE` and `LON_RANGE`
 
-- [ ] **Step 3.1: Write the failing test**
+- [x] **Step 3.1: Write the failing test**
 
   **Do:** create `tests/telematics_events_test.py`:
 
@@ -202,13 +202,13 @@
 
   **Why:** this pins down exactly what one event looks like before the code exists.
 
-- [ ] **Step 3.2: Run the test and see it fail**
+- [x] **Step 3.2: Run the test and see it fail**
 
   **Do:** `env -u PYTHONPATH uv run pytest tests/telematics_events_test.py -v`
 
   **Check:** it fails with `ModuleNotFoundError: No module named 'databricks_end_to_end_project.telematics'`.
 
-- [ ] **Step 3.3: Write the code**
+- [x] **Step 3.3: Write the code**
 
   **Do:** create an empty `src/databricks_end_to_end_project/telematics/__init__.py`, then create `src/databricks_end_to_end_project/telematics/events.py`:
 
@@ -243,13 +243,13 @@
       return json.dumps(event).encode("utf-8")
   ```
 
-- [ ] **Step 3.4: Run the test and see it pass**
+- [x] **Step 3.4: Run the test and see it pass**
 
   **Do:** `env -u PYTHONPATH uv run pytest tests/telematics_events_test.py -v`
 
   **Check:** `3 passed`.
 
-- [ ] **Step 3.5: Check the files**
+- [x] **Step 3.5: Check the files**
 
   **Do:** `git status --short`
 
