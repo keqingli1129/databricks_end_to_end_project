@@ -18,6 +18,9 @@ variables:
     description: The catalog to use
   schema:
     description: The schema to use
+  telematics_topic:
+    description: Kafka topic the telematics simulator writes to and the pipeline reads from
+    default: telematics
 
 targets:
   dev:

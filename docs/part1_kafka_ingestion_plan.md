@@ -108,7 +108,7 @@
 
   **Why:** this is the equivalent of the transcript's Unity Catalog service credential, a governed place for credentials so they're never hardcoded. Dev and prod live in the same workspace, so the scope name includes the target to keep them from clashing.
 
-- [ ] **Step 2.2: Add the topic variable**
+- [x] **Step 2.2: Add the topic variable**
 
   **Do:** in `databricks.yml`, under `variables:`, after the `schema:` entry, add:
 
