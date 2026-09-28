@@ -20,6 +20,10 @@ resources:
               - "50"
               - "--interval"
               - "3"
+              - "--sink"
+              - "${var.telematics_source}"
+              - "--landing-path"
+              - "/Volumes/${var.catalog}/${resources.schemas.landing.name}/${resources.volumes.landing_files.name}/telematics"
           environment_key: default
 
       environments:

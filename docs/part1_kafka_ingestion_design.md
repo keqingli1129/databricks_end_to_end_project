@@ -65,6 +65,23 @@ Bundle resources:
 - **`databricks.yml`:** adds the variable `telematics_topic`
 - **`pyproject.toml`:** adds the dependency `confluent-kafka` and the script `simulate = databricks_end_to_end_project.telematics.simulator:main`
 
+## Kafka bypass: landing files (added 2026-09-28)
+
+With no Confluent account, the Kafka path can be deployed, but no data can flow through it. So events can also travel as files:
+
+```text
+simulate --sink files  ──►  /Volumes/<catalog>/<landing schema>/files/telematics/<time>_<chassis>.json
+                                        │  Auto Loader (cloudFiles, text), streaming
+                                        ▼
+                         telematics_raw  ──►  telematics
+```
+
+- **Volume:** `resources/databricks_end_to_end_project.volume.yml` defines the managed volume `files` in the landing schema.
+- **Switch:** the bundle variable `telematics_source` (`files` by default, or `kafka`) drives both the simulator job (`--sink`) and the pipeline configuration (`telematics.source`).
+- **Same parsing in both modes:** in `files` mode, `telematics_raw` reshapes each file line into Kafka's columns. `value` becomes the line as bytes, `topic` becomes the configured topic, `partition` and `offset` are null, and `timestamp` is the file modification time. So `telematics` and `parse_telematics` don't change.
+- **The simulator's file sink:** `--sink files --landing-path` writes one file per event through the Databricks SDK Files API. This works locally through the CLI profile and inside the job.
+- **Switching to Kafka later:** change the variable, then run a full refresh of `telematics_raw`, because a streaming table's progress is tied to its source.
+
 ## Error handling
 
 - **Placeholder credentials:** running the pipeline or a non-dry-run simulator with placeholders fails with a Kafka connection or authentication error. This is expected until real values are set.

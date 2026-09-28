@@ -25,6 +25,21 @@ def _print_send(topic: str, key: bytes, value: bytes) -> None:
     print(f"[dry-run] {topic} key={key.decode()} {value.decode()}", flush=True)
 
 
+def _file_send(landing_path: str) -> Send:
+    """Return a `send` that writes each event as one JSON file into a Unity Catalog volume."""
+    from io import BytesIO
+
+    from databricks.sdk import WorkspaceClient
+
+    files = WorkspaceClient().files
+
+    def send(topic: str, key: bytes, value: bytes) -> None:
+        name = f"{datetime.now(timezone.utc):%Y%m%dT%H%M%S%f}_{key.decode()}.json"
+        files.upload(f"{landing_path}/{name}", BytesIO(value + b"\n"), overwrite=True)
+
+    return send
+
+
 def _send_to_kafka(args: argparse.Namespace) -> None:
     from confluent_kafka import Producer
     from databricks.sdk.runtime import dbutils
@@ -54,11 +69,20 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--count", type=int, default=20)
     parser.add_argument("--interval", type=float, default=3.0, help="seconds between events")
     parser.add_argument("--secret-scope", default="kafka_dev")
+    parser.add_argument("--sink", choices=["kafka", "files"], default="kafka")
+    parser.add_argument(
+        "--landing-path", help="volume folder for --sink files, e.g. /Volumes/<catalog>/<schema>/files/telematics"
+    )
     parser.add_argument("--dry-run", action="store_true", help="print events instead of sending them")
     args = parser.parse_args(argv)
 
     if args.dry_run:
         run(_print_send, args.topic, args.count, args.interval, random.Random())
+    elif args.sink == "files":
+        if not args.landing_path:
+            parser.error("--landing-path is required with --sink files")
+        run(_file_send(args.landing_path), args.topic, args.count, args.interval, random.Random())
+        print(f"Wrote {args.count} event files to {args.landing_path}")
     else:
         _send_to_kafka(args)
 

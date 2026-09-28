@@ -21,6 +21,9 @@ variables:
   telematics_topic:
     description: Kafka topic the telematics simulator writes to and the pipeline reads from
     default: telematics
+  telematics_source:
+    description: Where telematics events travel, "files" (landing volume + Auto Loader) or "kafka" (Confluent Cloud)
+    default: files
 
 targets:
   dev:

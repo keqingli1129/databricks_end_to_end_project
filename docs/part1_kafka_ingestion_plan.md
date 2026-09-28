@@ -4,7 +4,7 @@
 
 **Goal:** stream fake car telematics events through Kafka (Confluent Cloud) into a bronze streaming table with Lakeflow Declarative Pipelines. This follows part 1 of [transcript_1.txt](transcript_1.txt).
 
-**Architecture:** the design is in [part1_kafka_ingestion_design.md](part1_kafka_ingestion_design.md). Shared logic lives in `src/databricks_end_to_end_project/telematics/`: the event generator, the Kafka settings, the parsing, and the simulator loop. The pipeline and the simulator both reuse it. The bundle adds 4 medallion schemas (to the existing schema file), a secret scope, a new pipeline and a simulator job.
+**Architecture:** the design is in [part1_kafka_ingestion_design.md](part1_kafka_ingestion_design.md). Shared logic lives in `src/databricks_end_to_end_project/telematics/`: the event generator, the Kafka settings, the parsing, and the simulator loop. The pipeline and the simulator both reuse it. The bundle adds 4 medallion schemas (to the existing schema file), a secret scope, a landing volume, a new pipeline and a simulator job. Until a Confluent account exists, events travel as JSON files in the landing volume (Task 8), read with Auto Loader. `var.telematics_source` switches between `files` and `kafka`.
 
 **Tech stack:**
 
@@ -734,22 +734,153 @@
 
 ---
 
-### Task 8: Pipeline with the raw Kafka table
+
+### Task 8: Landing volume and a file sink for the simulator (the Kafka bypass)
+
+*Added 2026-09-28. Without a Confluent account no data can flow through Kafka. So the simulator can also write each event as a JSON file into a volume in the landing schema, and the pipeline reads those files with Auto Loader. A single variable, `telematics_source` (`files` or `kafka`), decides which path the simulator job and the pipeline use.*
+
+**Files:**
+- Create: `resources/databricks_end_to_end_project.volume.yml`
+- Modify: `databricks.yml` (the `variables:` block)
+- Modify: `src/databricks_end_to_end_project/telematics/simulator.py` (Task 6)
+- Modify: `resources/telematics_simulator.job.yml` (Task 7)
+
+**Interfaces:**
+- Produces:
+  - the volume resource `resources.volumes.landing_files`, named `files`, in the landing schema
+  - the landing path `/Volumes/${var.catalog}/${resources.schemas.landing.name}/${resources.volumes.landing_files.name}/telematics`, which in dev is `/Volumes/e2e_dev/dev_keqingli1129_landing/files/telematics`
+  - `${var.telematics_source}`, default `files`
+  - two new simulator options: `--sink {kafka,files}` (default `kafka`) and `--landing-path PATH`. With `files`, the simulator writes one `<UTC time>_<chassis_number>.json` file per event, each containing one JSON line.
+
+- [x] **Step 8.1: Create the volume**
+
+  **Do:** create `resources/databricks_end_to_end_project.volume.yml`:
+
+  ```yaml
+  # Unity Catalog volumes for this project.
+  # landing_files: raw files (e.g. simulator JSON) before they are ingested into Delta.
+
+  resources:
+    volumes:
+      landing_files:
+        catalog_name: ${var.catalog}
+        schema_name: ${resources.schemas.landing.name}
+        name: files
+        volume_type: MANAGED
+        comment: Raw landing files, e.g. telematics JSON from the simulator
+  ```
+
+  **Why:** a **volume** is a Unity Catalog folder for files that aren't tables. This is exactly what the transcript's landing schema is for: files that aren't Delta yet.
+
+- [x] **Step 8.2: Validate and deploy the volume**
+
+  **Do:** `env -u PYTHONPATH databricks bundle validate --strict --profile DEFAULT`, then `env -u PYTHONPATH databricks bundle deploy --profile DEFAULT`.
+
+  **Check:** the output contains `Created volumes.landing_files`. **If the deploy fails with a storage error** like the catalog's (`storage root URL does not exist`), stop here and decide what to do. A managed volume uses its catalog's storage, which is Default Storage here, so I don't expect that error.
+
+- [x] **Step 8.3: Add the source variable**
+
+  **Do:** in `databricks.yml`, under `variables:`, after `telematics_topic`, add:
+
+  ```yaml
+    telematics_source:
+      description: Where telematics events travel, "files" (landing volume + Auto Loader) or "kafka" (Confluent Cloud)
+      default: files
+  ```
+
+  **Why:** one switch for both the job and the pipeline. When a Confluent account exists, you change it to `kafka` (Task 12).
+
+- [x] **Step 8.4: Add the file sink to the simulator**
+
+  **Do:** in `src/databricks_end_to_end_project/telematics/simulator.py`, add this function after `_print_send`:
+
+  ```python
+  def _file_send(landing_path: str) -> Send:
+      """Return a `send` that writes each event as one JSON file into a Unity Catalog volume."""
+      from io import BytesIO
+
+      from databricks.sdk import WorkspaceClient
+
+      files = WorkspaceClient().files
+
+      def send(topic: str, key: bytes, value: bytes) -> None:
+          name = f"{datetime.now(timezone.utc):%Y%m%dT%H%M%S%f}_{key.decode()}.json"
+          files.upload(f"{landing_path}/{name}", BytesIO(value + b"\n"), overwrite=True)
+
+      return send
+  ```
+
+  Then, in `main`, add two arguments after `--secret-scope`:
+
+  ```python
+      parser.add_argument("--sink", choices=["kafka", "files"], default="kafka")
+      parser.add_argument("--landing-path", help="volume folder for --sink files, e.g. /Volumes/<catalog>/<schema>/files/telematics")
+  ```
+
+  Replace the `if args.dry_run: ... else: ...` block at the end of `main` with:
+
+  ```python
+      if args.dry_run:
+          run(_print_send, args.topic, args.count, args.interval, random.Random())
+      elif args.sink == "files":
+          if not args.landing_path:
+              parser.error("--landing-path is required with --sink files")
+          run(_file_send(args.landing_path), args.topic, args.count, args.interval, random.Random())
+          print(f"Wrote {args.count} event files to {args.landing_path}")
+      else:
+          _send_to_kafka(args)
+  ```
+
+  **Why:** the event and its JSON are exactly the same as with Kafka. Only the delivery changes. `WorkspaceClient()` authenticates through your `DEFAULT` profile locally, and automatically inside a job, so the same code works in both places.
+
+- [x] **Step 8.5: Write some files from your laptop**
+
+  **Do:** `env -u PYTHONPATH uv run simulate --sink files --landing-path /Volumes/e2e_dev/dev_keqingli1129_landing/files/telematics --count 10 --interval 0.5`
+
+  **Check:** it prints `Wrote 10 event files to /Volumes/e2e_dev/dev_keqingli1129_landing/files/telematics`. Then `databricks fs ls dbfs:/Volumes/e2e_dev/dev_keqingli1129_landing/files/telematics --profile DEFAULT` lists 10 `.json` files. They're also visible in the Catalog UI, under `…_landing` → Volumes → `files`.
+
+- [x] **Step 8.6: Point the simulator job at the chosen sink**
+
+  **Do:** in `resources/telematics_simulator.job.yml`, add these four entries to the end of the `parameters:` list:
+
+  ```yaml
+                - "--sink"
+                - "${var.telematics_source}"
+                - "--landing-path"
+                - "/Volumes/${var.catalog}/${resources.schemas.landing.name}/${resources.volumes.landing_files.name}/telematics"
+  ```
+
+  Then validate and deploy.
+
+  **Check:** the deploy output contains `Updated jobs.telematics_simulator`. `databricks jobs get <job id> --profile DEFAULT` shows `--sink files --landing-path /Volumes/e2e_dev/dev_keqingli1129_landing/files/telematics`.
+
+- [x] **Step 8.7: Check the files**
+
+  **Do:** `git status --short`
+
+  **Check:**
+  - **New:** the volume YAML.
+  - **Modified:** `databricks.yml`, `simulator.py` and the simulator job YAML.
+
+---
+
+### Task 9: Pipeline with the raw table (files or Kafka)
 
 **Files:**
 - Create: `resources/telematics_ingestion.pipeline.yml`
 - Create: `src/telematics_ingestion/transformations/telematics_raw.py`
 
 **Interfaces:**
-- Consumes `kafka_config.read_credentials`, `kafka_config.spark_kafka_options`, `${resources.schemas.bronze.name}` and `${resources.secret_scopes.kafka.name}`.
-- Produces the streaming table `telematics_raw` in bronze, with Kafka's columns `key`, `value`, `topic`, `partition`, `offset`, `timestamp` and `timestampType`.
+- Consumes `kafka_config.read_credentials`, `kafka_config.spark_kafka_options`, `${resources.schemas.bronze.name}`, `${resources.secret_scopes.kafka.name}`, `${var.telematics_source}` and the landing path from Task 8.
+- Produces the streaming table `telematics_raw` in bronze. It has the columns `key` (binary), `value` (binary), `topic`, `partition`, `offset` and `timestamp` in both modes, so parsing works the same either way.
 
-- [ ] **Step 8.1: Create the pipeline resource**
+- [ ] **Step 9.1: Create the pipeline resource**
 
   **Do:** create `resources/telematics_ingestion.pipeline.yml`:
 
   ```yaml
-  # Streaming ingestion of car telematics from Kafka (Confluent Cloud) into bronze.
+  # Streaming ingestion of car telematics into bronze.
+  # Source is chosen by var.telematics_source: "files" (landing volume, Auto Loader) or "kafka" (Confluent Cloud).
 
   resources:
     pipelines:
@@ -761,8 +892,10 @@
         root_path: "../src/telematics_ingestion"
 
         configuration:
+          telematics.source: ${var.telematics_source}
           telematics.topic: ${var.telematics_topic}
           telematics.secret_scope: ${resources.secret_scopes.kafka.name}
+          telematics.landing_path: /Volumes/${var.catalog}/${resources.schemas.landing.name}/${resources.volumes.landing_files.name}/telematics
 
         libraries:
           - glob:
@@ -774,44 +907,66 @@
             - --editable ${workspace.file_path}
   ```
 
-  **Why:** in the transcript this is "New ETL pipeline" in the UI, with bronze as the default schema. Here it's defined in the bundle instead. `configuration` passes the topic and scope name into the code without hardcoding them.
+  **Why:** in the transcript this is "New ETL pipeline" in the UI, with bronze as the default schema. Here it's defined in the bundle instead. `configuration` passes the settings into the code without hardcoding them.
 
-- [ ] **Step 8.2: Create the raw table**
+- [ ] **Step 9.2: Create the raw table**
 
   **Do:** create `src/telematics_ingestion/transformations/telematics_raw.py`:
 
   ```python
   from pyspark import pipelines as dp
+  from pyspark.sql import functions as F
   from databricks.sdk.runtime import dbutils
 
   from databricks_end_to_end_project.telematics import kafka_config
 
+  SOURCE = spark.conf.get("telematics.source")  # "files" or "kafka"
   TOPIC = spark.conf.get("telematics.topic")
-  SECRET_SCOPE = spark.conf.get("telematics.secret_scope")
 
 
-  @dp.table(comment="Raw Kafka records from the telematics topic; key/value are still bytes.")
-  def telematics_raw():
-      servers, key, secret = kafka_config.read_credentials(dbutils, SECRET_SCOPE)
+  def _read_kafka():
+      servers, key, secret = kafka_config.read_credentials(dbutils, spark.conf.get("telematics.secret_scope"))
       options = kafka_config.spark_kafka_options(servers, key, secret, TOPIC)
       return spark.readStream.format("kafka").options(**options).load()
+
+
+  def _read_landing_files():
+      """Read the simulator's JSON files with Auto Loader, shaped like Kafka rows so parsing works unchanged."""
+      lines = (
+          spark.readStream.format("cloudFiles")
+          .option("cloudFiles.format", "text")
+          .load(spark.conf.get("telematics.landing_path"))
+      )
+      return lines.select(
+          F.lit(None).cast("binary").alias("key"),
+          F.col("value").cast("binary").alias("value"),
+          F.lit(TOPIC).alias("topic"),
+          F.lit(None).cast("int").alias("partition"),
+          F.lit(None).cast("long").alias("offset"),
+          F.col("_metadata.file_modification_time").alias("timestamp"),
+      )
+
+
+  @dp.table(comment=f"Raw telematics records (source: {SOURCE}); value is still bytes.")
+  def telematics_raw():
+      return _read_kafka() if SOURCE == "kafka" else _read_landing_files()
   ```
 
-  **Why:** this is the transcript's `telematics_test` table, the simplest possible read of the stream into Delta. Because it uses `readStream`, it's a **streaming table**, not a materialized view. Each run reads only the messages that are new since the last run.
+  **Why:** this is the transcript's `telematics_test` table, the simplest read of the stream into Delta. It uses `readStream`, so it's a **streaming table**: each run reads only what's new since the last run. **Auto Loader** (`cloudFiles`) does for files what a Kafka consumer does for messages, keeping track of which files it has already read.
 
-- [ ] **Step 8.3: Validate and deploy**
+- [ ] **Step 9.3: Validate and deploy**
 
   **Do:** `env -u PYTHONPATH databricks bundle validate --strict --profile DEFAULT`, then `env -u PYTHONPATH databricks bundle deploy --profile DEFAULT`.
 
-  **Check:** the output contains `Created pipelines.telematics_ingestion`. The UI shows `[dev keqingli1129] telematics_ingestion` under Jobs & Pipelines.
+  **Check:** the output contains `Created pipelines.telematics_ingestion`. The UI shows `[dev keqingli1129] telematics_ingestion`.
 
-- [ ] **Step 8.4 (optional): Run it and see the expected failure**
+- [ ] **Step 9.4: Run it and see data arrive**
 
   **Do:** `env -u PYTHONPATH databricks bundle run telematics_ingestion --profile DEFAULT`
 
-  **Check:** the update fails in `telematics_raw` with a Kafka error about the bootstrap server, such as `No resolvable bootstrap urls` or `Failed to construct kafka consumer`. That's expected with `<BOOTSTRAP_SERVER>`. It proves that the pipeline, the secrets and the code are all connected.
+  **Check:** the update completes, and `telematics_raw` shows **10 rows written**, one per file from step 8.5. In the UI, `value` is unreadable bytes, just like in the transcript.
 
-- [ ] **Step 8.5: Check the files**
+- [ ] **Step 9.5: Check the files**
 
   **Do:** `git status --short`
 
@@ -819,7 +974,7 @@
 
 ---
 
-### Task 9: Parsed telematics table
+### Task 10: Parsed telematics table
 
 **Files:**
 - Create: `src/telematics_ingestion/transformations/telematics.py`
@@ -828,7 +983,7 @@
 - Consumes `parsing.parse_telematics` and the streaming table `telematics_raw`.
 - Produces the streaming table `telematics` in bronze.
 
-- [ ] **Step 9.1: Create the parsed table**
+- [ ] **Step 10.1: Create the parsed table**
 
   **Do:** create `src/telematics_ingestion/transformations/telematics.py`:
 
@@ -838,20 +993,34 @@
   from databricks_end_to_end_project.telematics.parsing import parse_telematics
 
 
-  @dp.table(comment="Parsed telematics events from Kafka: one column per field, values as strings.")
+  @dp.table(comment="Parsed telematics events: one column per field, values as strings.")
   def telematics():
       return parse_telematics(spark.readStream.table("telematics_raw"))
   ```
 
-  **Why:** this is the transcript's "decoding and parsing" table. It reads from `telematics_raw` rather than from Kafka a second time, so there's only one Kafka consumer. The pipeline graph will show `telematics_raw → telematics`.
+  **Why:** this is the transcript's "decoding and parsing" table. It reads from `telematics_raw`, so the source is read only once, and the pipeline graph shows `telematics_raw → telematics`.
 
-- [ ] **Step 9.2: Deploy**
+- [ ] **Step 10.2: Deploy and run**
 
-  **Do:** `env -u PYTHONPATH databricks bundle deploy --profile DEFAULT`
+  **Do:** `env -u PYTHONPATH databricks bundle deploy --profile DEFAULT`, then `env -u PYTHONPATH databricks bundle run telematics_ingestion --profile DEFAULT`.
 
-  **Check:** `Updated pipelines.telematics_ingestion`. The file was picked up by the `transformations/**` glob, so no YAML change was needed.
+  **Check:** `telematics` shows 10 rows written. `telematics_raw` shows 0, because streaming reads only **new** input and there are no new files.
 
-- [ ] **Step 9.3: Check the files**
+- [ ] **Step 10.3: Look at the data**
+
+  **Do:** in the SQL editor, run `SELECT * FROM e2e_dev.dev_keqingli1129_bronze.telematics LIMIT 10`.
+
+  **Check:** the columns `chassis_number`, `speed`, `latitude`, `longitude` and `event_timestamp` are readable.
+
+- [ ] **Step 10.4: Send new events and watch only they get picked up**
+
+  **Do:**
+  1. Run `env -u PYTHONPATH databricks bundle run telematics_simulator --profile DEFAULT`, which sends 50 events at 3-second intervals, about 2½ minutes.
+  2. Then run the pipeline again.
+
+  **Check:** both tables show **50** new rows, not 60. The first 10 were read last time.
+
+- [ ] **Step 10.5: Check the files**
 
   **Do:** `git status --short`
 
@@ -859,30 +1028,33 @@
 
 ---
 
-### Task 10: Update CLAUDE.md
+### Task 11: Update CLAUDE.md
 
 **Files:**
-- Modify: `CLAUDE.md` (the Architecture section)
+- Modify: `CLAUDE.md` (the Commands line for `databricks-connect` and the Architecture section)
 
-- [ ] **Step 10.1: Document the new pieces**
+- [ ] **Step 11.1: Document the new pieces**
 
-  **Do:** add these bullets to the Architecture list in `CLAUDE.md`, after the **Job** bullet:
+  **Do:**
+
+  1. In `CLAUDE.md`, change `databricks-connect 16.4` to `databricks-connect 18.0`. `setup-local` changed the version.
+  2. Add these bullets to the Architecture list, after the **Job** bullet:
 
   ```markdown
-  - **Medallion schemas** (in `resources/databricks_end_to_end_project.schema.yml`): `landing`, `bronze`, `silver`, `gold` in `${var.catalog}`; dev prefixes them `dev_<user>_`. Reference them as `${resources.schemas.<layer>.name}`.
-  - **Telematics ingestion** (docs/part1_kafka_ingestion_design.md): Confluent Cloud Kafka → `telematics_ingestion` pipeline (serverless, schema bronze) → streaming tables `telematics_raw` and `telematics`. Kafka credentials live in the bundle-defined secret scope `${resources.secret_scopes.kafka.name}` (keys `bootstrap_servers`, `api_key`, `api_secret`, set via `databricks secrets put-secret`, currently placeholders). Shared logic is in `src/databricks_end_to_end_project/telematics/`.
-  - **Simulator**: `env -u PYTHONPATH uv run simulate --dry-run` prints fake events locally; without `--dry-run` it sends to Kafka using the secret scope (`--secret-scope`). The `telematics_simulator` job runs the same entry point on Databricks.
+  - **Medallion schemas** (in `resources/databricks_end_to_end_project.schema.yml`): `landing`, `bronze`, `silver`, `gold` in `${var.catalog}`; dev prefixes them `dev_<user>_`. Reference them as `${resources.schemas.<layer>.name}`. The landing schema has a managed volume `files` (`resources/databricks_end_to_end_project.volume.yml`).
+  - **Telematics ingestion** (docs/part1_kafka_ingestion_design.md): `telematics_ingestion` pipeline (serverless, schema bronze) → streaming tables `telematics_raw` and `telematics`. `var.telematics_source` picks the source: `files` (default — simulator JSON files in `/Volumes/<catalog>/<landing>/files/telematics`, read with Auto Loader) or `kafka` (Confluent Cloud; credentials in the bundle-defined secret scope `${resources.secret_scopes.kafka.name}`, keys `bootstrap_servers`/`api_key`/`api_secret`, currently placeholders). Both sources produce Kafka-shaped rows so `parse_telematics` works unchanged. Switching source needs a full refresh of `telematics_raw`. Shared logic is in `src/databricks_end_to_end_project/telematics/`.
+  - **Simulator**: `env -u PYTHONPATH uv run simulate --dry-run` prints fake events; `--sink files --landing-path /Volumes/...` writes them to the volume; `--sink kafka` (default) sends to Kafka via the secret scope. The `telematics_simulator` job runs the same entry point with `--sink ${var.telematics_source}`.
   ```
 
   **Check:** `git status --short` shows `CLAUDE.md` modified.
 
 ---
 
-### Task 11 (later, optional): Switch to a real Confluent Cloud account
+### Task 12 (later, optional): Switch to a real Confluent Cloud account
 
-Do this only when you have a Confluent account. It's the only step that proves data actually flows end to end.
+Do this only when you have a Confluent account. It's the only step that proves data actually flows through Kafka end to end.
 
-- [ ] **Step 11.1: Create the Kafka side in Confluent Cloud**
+- [ ] **Step 12.1: Create the Kafka side in Confluent Cloud**
 
   **Do:**
   1. Create a **Basic** cluster, preferably on AWS `us-east-1`, near the workspace.
@@ -890,26 +1062,36 @@ Do this only when you have a Confluent account. It's the only step that proves d
   3. Create an **API key** for the cluster.
   4. Copy the **bootstrap server**, e.g. `pkc-xxxxx.us-east-1.aws.confluent.cloud:9092`.
 
-- [ ] **Step 11.2: Replace the placeholder secrets**
+- [ ] **Step 12.2: Replace the placeholder secrets**
 
   **Do:** run the three `put-secret` commands from step 2.5 again, with the real values.
 
-- [ ] **Step 11.3: Send events**
+- [ ] **Step 12.3: Switch the source to Kafka**
 
-  **Do:** `env -u PYTHONPATH uv run simulate --count 40 --interval 1 --secret-scope <SCOPE>`
+  **Do:**
+  1. In `databricks.yml`, change the `telematics_source` default to `kafka`, then deploy.
+  2. Run the pipeline once with a **full refresh**: `env -u PYTHONPATH databricks bundle run telematics_ingestion --full-refresh-all --profile DEFAULT`.
+
+  **Why:** `telematics_raw` remembers how far it has read its old source, the files. A new source needs a fresh start. This also clears the file-based rows from both tables.
+
+- [ ] **Step 12.4: Send events through Kafka**
+
+  **Do:** `env -u PYTHONPATH uv run simulate --count 40 --interval 1`, which uses `--sink kafka` and `--secret-scope kafka_dev` by default.
 
   **Check:** `Sent 40 events to topic telematics`. The topic's message viewer in Confluent shows them.
 
-- [ ] **Step 11.4: Run the pipeline**
+- [ ] **Step 12.5: Run the pipeline**
 
   **Do:** `env -u PYTHONPATH databricks bundle run telematics_ingestion --profile DEFAULT`
 
-  **Check:** the update completes. `telematics_raw` and `telematics` each show 40 rows written. Querying the `telematics` sample data shows readable `speed`, `latitude` and so on. **If the update can't reach Confluent at all**, look for a DNS or connection timeout rather than an authentication error. That would be the Free Edition outbound-network limit mentioned in the design.
+  **Check:** `telematics_raw` and `telematics` each show 40 rows written. **If the update can't reach Confluent at all**, look for a DNS or connection timeout rather than an authentication error. That would be the Free Edition outbound-network limit mentioned in the design.
 
-- [ ] **Step 11.5: Continuous mode, as in the transcript**
+- [ ] **Step 12.6: Continuous mode, as in the transcript**
 
   **Do:**
   1. Add `continuous: true` under `telematics_ingestion` in the pipeline YAML, deploy, and run.
   2. Start `uv run simulate --count 100 --interval 3` in another terminal.
   3. Watch the rows arrive live in the pipeline UI.
   4. **Stop the pipeline afterwards, and set `continuous` back to `false` and redeploy.** A continuous pipeline runs, and uses serverless compute, until you stop it.
+
+  This works in files mode too, with `--sink files`.
