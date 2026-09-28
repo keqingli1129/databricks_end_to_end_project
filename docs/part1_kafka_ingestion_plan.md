@@ -90,7 +90,7 @@
 - Produces `${resources.secret_scopes.kafka.name}`, a scope holding the keys `bootstrap_servers`, `api_key` and `api_secret`.
 - Produces `${var.telematics_topic}`, default `telematics`.
 
-- [ ] **Step 2.1: Create the secret scope file**
+- [x] **Step 2.1: Create the secret scope file**
 
   **Do:** create `resources/kafka.secret_scope.yml`:
 
