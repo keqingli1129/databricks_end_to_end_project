@@ -124,7 +124,7 @@
 
   **Check:** it prints the scope name, e.g. `kafka_dev` (development mode may add a prefix), followed by `telematics`. **Write down the scope name**, because later steps use it.
 
-- [ ] **Step 2.4: Deploy**
+- [x] **Step 2.4: Deploy**
 
   **Do:** `env -u PYTHONPATH databricks bundle deploy --profile DEFAULT`
 
