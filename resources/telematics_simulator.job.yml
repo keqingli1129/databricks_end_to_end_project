@@ -1,0 +1,30 @@
+# Runs the telematics simulator on Databricks: sends fake events to the Kafka topic.
+# No schedule; start it with: databricks bundle run telematics_simulator
+
+resources:
+  jobs:
+    telematics_simulator:
+      name: telematics_simulator
+
+      tasks:
+        - task_key: simulate
+          python_wheel_task:
+            package_name: databricks_end_to_end_project
+            entry_point: simulate
+            parameters:
+              - "--topic"
+              - "${var.telematics_topic}"
+              - "--secret-scope"
+              - "${resources.secret_scopes.kafka.name}"
+              - "--count"
+              - "50"
+              - "--interval"
+              - "3"
+          environment_key: default
+
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "5"
+            dependencies:
+              - ../dist/*.whl

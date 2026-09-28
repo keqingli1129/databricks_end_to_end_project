@@ -22,7 +22,7 @@
 - **No git commits.**
 - **Profile `DEFAULT`, target `dev`.** Every CLI command passes `--profile DEFAULT` and deploys only to `dev`. Prod is out of scope for this plan.
 - **Clear the ROS path for local Python.** Run local Python commands as `env -u PYTHONPATH uv run ...`, because your shell's ROS `PYTHONPATH` breaks pytest.
-- **Test first.** Every code unit gets its test written first and seen failing. Tests go in the flat `tests/*_test.py` layout.
+- **Tests only for Tasks 3–4.** Tasks 3–4 were built test-first, with tests in `tests/*_test.py`. From Task 5 on, you chose to skip automated tests (2026-09-28). The remaining checks are `bundle validate`, deploys, and trying the simulator by hand.
 
 ---
 
@@ -395,13 +395,13 @@
 
 **Files:**
 - Create: `src/databricks_end_to_end_project/telematics/parsing.py`
-- Test: `tests/telematics_parsing_test.py`
+- ~~Test: `tests/telematics_parsing_test.py`~~ (skipped)
 
 **Interfaces:**
 - Consumes a DataFrame with the Spark Kafka source's columns: `key` (binary), `value` (binary), `topic` (string), `partition` (int), `offset` (long), `timestamp` (timestamp).
 - Produces `parsing.parse_telematics(raw_df: DataFrame) -> DataFrame`, with the string columns `chassis_number`, `speed`, `latitude`, `longitude` and `event_timestamp`, plus a `stream_metadata` struct (`topic`, `partition`, `offset`, `timestamp`) and the string `raw_json`.
 
-- [ ] **Step 5.1: Write the failing test**
+- [x] ~~**Step 5.1: Write the failing test**~~ *Skipped (no more tests).*
 
   **Do:** create `tests/telematics_parsing_test.py`:
 
@@ -457,13 +457,13 @@
 
   **Why:** this is the transcript's "decoding and parsing" step. Kafka hands over bytes, and we want readable columns. The test uses a fake Kafka row, so it needs no Kafka.
 
-- [ ] **Step 5.2: Run the test and see it fail**
+- [x] ~~**Step 5.2: Run the test and see it fail**~~ *Skipped (no more tests).*
 
   **Do:** `env -u PYTHONPATH uv run pytest tests/telematics_parsing_test.py -v`
 
   **Check:** it fails with `ModuleNotFoundError: No module named 'databricks_end_to_end_project.telematics.parsing'`.
 
-- [ ] **Step 5.3: Write the code**
+- [x] **Step 5.3: Write the code**
 
   **Do:** create `src/databricks_end_to_end_project/telematics/parsing.py`:
 
@@ -491,13 +491,13 @@
       )
   ```
 
-- [ ] **Step 5.4: Run the test and see it pass**
+- [x] ~~**Step 5.4: Run the test and see it pass**~~ *Skipped (no more tests).*
 
   **Do:** `env -u PYTHONPATH uv run pytest tests/telematics_parsing_test.py -v`
 
   **Check:** `1 passed`. It takes about 20 seconds, because it uses serverless compute through Databricks Connect.
 
-- [ ] **Step 5.5: Check the files**
+- [x] **Step 5.5: Check the files**
 
   **Do:** `git status --short`
 
@@ -510,7 +510,7 @@
 **Files:**
 - Create: `src/databricks_end_to_end_project/telematics/simulator.py`
 - Modify: `pyproject.toml` (add to `dependencies` and `[project.scripts]`)
-- Test: `tests/telematics_simulator_test.py`
+- ~~Test: `tests/telematics_simulator_test.py`~~ (skipped)
 
 **Interfaces:**
 - Consumes `events.generate_event`, `events.to_json`, `events.DEFAULT_CHASSIS_NUMBERS`, `kafka_config.read_credentials` and `kafka_config.producer_config`.
@@ -518,7 +518,7 @@
   - `simulator.run(send, topic: str, count: int, interval: float, rng: random.Random) -> int`, where `send(topic: str, key: bytes, value: bytes)` is called once per event
   - `simulator.main(argv: list[str] | None = None)`, the `simulate` console script, with the options `--topic` (default `telematics`), `--count` (20), `--interval` (3.0), `--secret-scope` (`kafka_dev`) and `--dry-run`
 
-- [ ] **Step 6.1: Write the failing test**
+- [x] ~~**Step 6.1: Write the failing test**~~ *Skipped (no more tests).*
 
   **Do:** create `tests/telematics_simulator_test.py`:
 
@@ -553,13 +553,13 @@
 
   **Why:** the loop gets the "send" function passed in, so a test can pass a fake one, and `--dry-run` works with no Kafka at all.
 
-- [ ] **Step 6.2: Run the test and see it fail**
+- [x] ~~**Step 6.2: Run the test and see it fail**~~ *Skipped (no more tests).*
 
   **Do:** `env -u PYTHONPATH uv run pytest tests/telematics_simulator_test.py -v`
 
   **Check:** it fails with `ImportError: cannot import name 'simulator'`.
 
-- [ ] **Step 6.3: Add the dependency and the console script**
+- [x] **Step 6.3: Add the dependency and the console script**
 
   **Do:** in `pyproject.toml`, add `"confluent-kafka>=2.6",` to the `dependencies = [...]` list, after the existing comments. Then add a line under `[project.scripts]`:
 
@@ -573,7 +573,7 @@
 
   **Check:** the `uv sync` output lists `+ confluent-kafka==…`.
 
-- [ ] **Step 6.4: Write the simulator**
+- [x] **Step 6.4: Write the simulator**
 
   **Do:** create `src/databricks_end_to_end_project/telematics/simulator.py`:
 
@@ -647,31 +647,29 @@
       main()
   ```
 
-- [ ] **Step 6.5: Run the test and see it pass**
+- [x] ~~**Step 6.5: Run the test and see it pass**~~ *Skipped (no more tests).*
 
   **Do:** `env -u PYTHONPATH uv run pytest tests/telematics_simulator_test.py -v`
 
   **Check:** `2 passed`.
 
-- [ ] **Step 6.6: Try the dry run yourself**
+- [x] **Step 6.6: Try the dry run yourself**
 
   **Do:** `env -u PYTHONPATH uv run simulate --dry-run --count 5 --interval 1`
 
   **Check:** 5 lines appear, one per second, each looking like `[dry-run] telematics key=CHS000004 {"chassis_number": "CHS000004", "speed": 97.3, ...}`.
 
-- [ ] **Step 6.7: Try a real send and see the expected failure**
+- [x] **Step 6.7: Try a real send and see the expected failure**
 
   **Do:** `env -u PYTHONPATH uv run simulate --count 1 --secret-scope <SCOPE>`, using the scope from step 2.3.
 
   **Check:** after about 30 seconds, it exits with `Kafka delivery failed: 1 undelivered ...`. That's expected, because `<BOOTSTRAP_SERVER>` is a placeholder. It shows the simulator read the secrets and tried to connect.
 
-- [ ] **Step 6.8: Run the full test suite and check the files**
+- [x] **Step 6.8: Check the files**
 
-  **Do:** `env -u PYTHONPATH uv run pytest -v`, then `git status --short`.
+  **Do:** `git status --short`.
 
-  **Check:**
-  - **Tests:** all pass, including the existing taxi test.
-  - **Files:** new `simulator.py` and its test, with `pyproject.toml` and `uv.lock` modified.
+  **Check:** `simulator.py` is new, and `pyproject.toml` and `uv.lock` are modified.
 
 ---
 
@@ -683,7 +681,7 @@
 **Interfaces:**
 - Consumes the `simulate` entry point (Task 6), `${var.telematics_topic}` and `${resources.secret_scopes.kafka.name}` (Task 2).
 
-- [ ] **Step 7.1: Create the job file**
+- [x] **Step 7.1: Create the job file**
 
   **Do:** create `resources/telematics_simulator.job.yml`:
 
@@ -722,13 +720,13 @@
 
   **Why:** this is the "run it in Databricks" half of simulator option C. It uses the same code as `uv run simulate`.
 
-- [ ] **Step 7.2: Validate and deploy**
+- [x] **Step 7.2: Validate and deploy**
 
   **Do:** `env -u PYTHONPATH databricks bundle validate --strict --profile DEFAULT`, then `env -u PYTHONPATH databricks bundle deploy --profile DEFAULT`.
 
   **Check:** the deploy output contains `Created jobs.telematics_simulator`. **Don't run the job yet**, because with placeholder secrets it would just fail after 30 seconds.
 
-- [ ] **Step 7.3: Check the files**
+- [x] **Step 7.3: Check the files**
 
   **Do:** `git status --short`
 

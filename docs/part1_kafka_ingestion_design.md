@@ -72,6 +72,8 @@ Bundle resources:
 
 ## Testing
 
+> **Update (2026-09-28):** you chose to skip automated tests after Tasks 3–4. Only `telematics_events_test.py` and `telematics_kafka_config_test.py` exist. The parsing and simulator tests below were not written.
+
 pytest tests follow the existing flat `tests/*_test.py` convention, and each test is written first and seen failing before the code is written:
 
 - **`tests/telematics_events_test.py`:** every field is present, the values fall in range, and the JSON round-trips

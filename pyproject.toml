@@ -9,6 +9,7 @@ dependencies = [
     #
     # LIMITATION: for pipelines, dependencies are cached during development;
     # add dependencies to the 'environment' section of your pipeline.yml file instead
+    "confluent-kafka>=2.6",
 ]
 
 [dependency-groups]
@@ -22,6 +23,7 @@ dev = [
 
 [project.scripts]
 main = "databricks_end_to_end_project.main:main"
+simulate = "databricks_end_to_end_project.telematics.simulator:main"
 
 [build-system]
 requires = ["hatchling"]
