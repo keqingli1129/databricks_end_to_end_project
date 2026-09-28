@@ -118,7 +118,7 @@
       default: telematics
   ```
 
-- [ ] **Step 2.3: Validate and read the resolved scope name**
+- [x] **Step 2.3: Validate and read the resolved scope name**
 
   **Do:** `env -u PYTHONPATH databricks bundle validate --strict --profile DEFAULT -o json | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d["resources"]["secret_scopes"]["kafka"]["name"], d["variables"]["telematics_topic"]["value"])'`
 
