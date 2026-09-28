@@ -1,6 +1,6 @@
-# The Unity Catalog schemas for this project, all in ${var.catalog}.
+# The Unity Catalog objects for this project (schemas and volumes), all in ${var.catalog}.
 # Managed by the bundle so they are created on deploy (and removed on `bundle destroy`).
-# In dev, development mode prefixes each name with dev_<user>_.
+# In dev, development mode prefixes each schema name with dev_<user>_.
 
 resources:
   schemas:
@@ -27,3 +27,12 @@ resources:
       catalog_name: ${var.catalog}
       name: gold
       comment: Aggregated and joined data, ready for BI
+
+  volumes:
+    # Raw files (e.g. simulator JSON) before they are ingested into Delta.
+    landing_files:
+      catalog_name: ${var.catalog}
+      schema_name: ${resources.schemas.landing.name}
+      name: files
+      volume_type: MANAGED
+      comment: Raw landing files, e.g. telematics JSON from the simulator

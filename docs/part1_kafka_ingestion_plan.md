@@ -29,14 +29,14 @@
 ### Task 1: Medallion schemas
 
 **Files:**
-- Modify: `resources/databricks_end_to_end_project.schema.yml`. The four schemas are added next to the existing `databricks_end_to_end_project_schema`, so all project schemas live in one file. The CLI prints a style note, "define a single schema in a file", on every validate. That note is harmless, and we chose one file on purpose.
+- Modify: `resources/databricks_end_to_end_project.yml`. The four schemas are added next to the existing `databricks_end_to_end_project_schema`, so all project schemas live in one file. *(2026-09-28: the schema and volume files were merged into this single `databricks_end_to_end_project.yml`. Without the `.schema.yml` ending, the CLI's "define a single schema in a file" style note no longer appears.)*
 
 **Interfaces:**
 - Produces the bundle resources `resources.schemas.landing`, `.bronze`, `.silver` and `.gold`. Later tasks use `${resources.schemas.bronze.name}`.
 
 - [x] **Step 1.1: Add the schemas**
 
-  **Do:** under `resources.schemas` in `resources/databricks_end_to_end_project.schema.yml`, after `databricks_end_to_end_project_schema`, add:
+  **Do:** under `resources.schemas` in `resources/databricks_end_to_end_project.yml`, after `databricks_end_to_end_project_schema`, add:
 
   ```yaml
       # Medallion architecture (see docs/transcript_1.txt).
@@ -64,7 +64,7 @@
 
   **Do:** `env -u PYTHONPATH databricks bundle validate --strict --profile DEFAULT`
 
-  **Check:** no errors, just the single-schema-per-file note. The schemas resolve to `e2e_dev.dev_keqingli1129_{landing,bronze,silver,gold}`.
+  **Check:** no errors. The schemas resolve to `e2e_dev.dev_keqingli1129_{landing,bronze,silver,gold}`.
 
 - [x] **Step 1.3: Deploy to dev**
 
@@ -76,7 +76,7 @@
 
   **Do:** `git status --short`
 
-  **Check:** `resources/databricks_end_to_end_project.schema.yml` is modified, and `docs/` is new.
+  **Check:** `resources/databricks_end_to_end_project.yml` is modified, and `docs/` is new.
 
 ---
 
@@ -740,7 +740,7 @@
 *Added 2026-09-28. Without a Confluent account no data can flow through Kafka. So the simulator can also write each event as a JSON file into a volume in the landing schema, and the pipeline reads those files with Auto Loader. A single variable, `telematics_source` (`files` or `kafka`), decides which path the simulator job and the pipeline use.*
 
 **Files:**
-- Create: `resources/databricks_end_to_end_project.volume.yml`
+- Create: `resources/databricks_end_to_end_project.yml`
 - Modify: `databricks.yml` (the `variables:` block)
 - Modify: `src/databricks_end_to_end_project/telematics/simulator.py` (Task 6)
 - Modify: `resources/telematics_simulator.job.yml` (Task 7)
@@ -754,7 +754,7 @@
 
 - [x] **Step 8.1: Create the volume**
 
-  **Do:** create `resources/databricks_end_to_end_project.volume.yml`:
+  **Do:** create `resources/databricks_end_to_end_project.yml`:
 
   ```yaml
   # Unity Catalog volumes for this project.
@@ -874,7 +874,7 @@
 - Consumes `kafka_config.read_credentials`, `kafka_config.spark_kafka_options`, `${resources.schemas.bronze.name}`, `${resources.secret_scopes.kafka.name}`, `${var.telematics_source}` and the landing path from Task 8.
 - Produces the streaming table `telematics_raw` in bronze. It has the columns `key` (binary), `value` (binary), `topic`, `partition`, `offset` and `timestamp` in both modes, so parsing works the same either way.
 
-- [ ] **Step 9.1: Create the pipeline resource**
+- [x] **Step 9.1: Create the pipeline resource**
 
   **Do:** create `resources/telematics_ingestion.pipeline.yml`:
 
@@ -889,7 +889,8 @@
         catalog: ${var.catalog}
         schema: ${resources.schemas.bronze.name}
         serverless: true
-        root_path: "../src/telematics_ingestion"
+        # root_path is put on sys.path by the pipeline, so ../src makes `import databricks_end_to_end_project` work.
+        root_path: "../src"
 
         configuration:
           telematics.source: ${var.telematics_source}
@@ -909,7 +910,7 @@
 
   **Why:** in the transcript this is "New ETL pipeline" in the UI, with bronze as the default schema. Here it's defined in the bundle instead. `configuration` passes the settings into the code without hardcoding them.
 
-- [ ] **Step 9.2: Create the raw table**
+- [x] **Step 9.2: Create the raw table**
 
   **Do:** create `src/telematics_ingestion/transformations/telematics_raw.py`:
 
@@ -954,19 +955,21 @@
 
   **Why:** this is the transcript's `telematics_test` table, the simplest read of the stream into Delta. It uses `readStream`, so it's a **streaming table**: each run reads only what's new since the last run. **Auto Loader** (`cloudFiles`) does for files what a Kafka consumer does for messages, keeping track of which files it has already read.
 
-- [ ] **Step 9.3: Validate and deploy**
+- [x] **Step 9.3: Validate and deploy**
 
   **Do:** `env -u PYTHONPATH databricks bundle validate --strict --profile DEFAULT`, then `env -u PYTHONPATH databricks bundle deploy --profile DEFAULT`.
 
   **Check:** the output contains `Created pipelines.telematics_ingestion`. The UI shows `[dev keqingli1129] telematics_ingestion`.
 
-- [ ] **Step 9.4: Run it and see data arrive**
+- [x] **Step 9.4: Run it and see data arrive**
 
   **Do:** `env -u PYTHONPATH databricks bundle run telematics_ingestion --profile DEFAULT`
 
   **Check:** the update completes, and `telematics_raw` shows **10 rows written**, one per file from step 8.5. In the UI, `value` is unreadable bytes, just like in the transcript.
 
-- [ ] **Step 9.5: Check the files**
+  > **What happened on 2026-09-28:** the first run failed with `ModuleNotFoundError: No module named 'databricks_end_to_end_project'`. A diagnostic run showed that pip **had** installed the package as editable. But its `.pth` file, which points at `…/files/src`, is never processed inside the pipeline, so `src/` wasn't on `sys.path`. The pipeline does put its own `root_path` on `sys.path`, so the fix was to set `root_path: "../src"` in `telematics_ingestion.pipeline.yml`. The step 9.1 code block above now shows the fixed value.
+
+- [x] **Step 9.5: Check the files**
 
   **Do:** `git status --short`
 
@@ -1041,7 +1044,7 @@
   2. Add these bullets to the Architecture list, after the **Job** bullet:
 
   ```markdown
-  - **Medallion schemas** (in `resources/databricks_end_to_end_project.schema.yml`): `landing`, `bronze`, `silver`, `gold` in `${var.catalog}`; dev prefixes them `dev_<user>_`. Reference them as `${resources.schemas.<layer>.name}`. The landing schema has a managed volume `files` (`resources/databricks_end_to_end_project.volume.yml`).
+  - **Medallion schemas** (in `resources/databricks_end_to_end_project.yml`): `landing`, `bronze`, `silver`, `gold` in `${var.catalog}`; dev prefixes them `dev_<user>_`. Reference them as `${resources.schemas.<layer>.name}`. The landing schema has a managed volume `files` (`resources/databricks_end_to_end_project.yml`).
   - **Telematics ingestion** (docs/part1_kafka_ingestion_design.md): `telematics_ingestion` pipeline (serverless, schema bronze) → streaming tables `telematics_raw` and `telematics`. `var.telematics_source` picks the source: `files` (default — simulator JSON files in `/Volumes/<catalog>/<landing>/files/telematics`, read with Auto Loader) or `kafka` (Confluent Cloud; credentials in the bundle-defined secret scope `${resources.secret_scopes.kafka.name}`, keys `bootstrap_servers`/`api_key`/`api_secret`, currently placeholders). Both sources produce Kafka-shaped rows so `parse_telematics` works unchanged. Switching source needs a full refresh of `telematics_raw`. Shared logic is in `src/databricks_end_to_end_project/telematics/`.
   - **Simulator**: `env -u PYTHONPATH uv run simulate --dry-run` prints fake events; `--sink files --landing-path /Volumes/...` writes them to the volume; `--sink kafka` (default) sends to Kafka via the secret scope. The `telematics_simulator` job runs the same entry point with `--sink ${var.telematics_source}`.
   ```
@@ -1084,7 +1087,7 @@ Do this only when you have a Confluent account. It's the only step that proves d
 
   **Do:** `env -u PYTHONPATH databricks bundle run telematics_ingestion --profile DEFAULT`
 
-  **Check:** `telematics_raw` and `telematics` each show 40 rows written. **If the update can't reach Confluent at all**, look for a DNS or connection timeout rather than an authentication error. That would be the Free Edition outbound-network limit mentioned in the design.
+  **Check:** `telematics_raw` and `telematics` each show 40 rows written. **If the update can't reach Confluent at all**, look for a DNS or connection timeout rather than an authentication error. That would be the Free Edition outbound-network limit mentioned in the design. **If it fails with a login error like `LoginModule not found`**, change the class in `kafka_config.spark_kafka_options` from `kafkashaded.org.apache.kafka…PlainLoginModule` to `org.apache.kafka…PlainLoginModule`, and update its test. Databricks documents the shaded name, but some examples use the plain one.
 
 - [ ] **Step 12.6: Continuous mode, as in the transcript**
 

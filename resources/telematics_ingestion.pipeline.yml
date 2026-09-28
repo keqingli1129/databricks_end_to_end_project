@@ -1,0 +1,28 @@
+# Streaming ingestion of car telematics into bronze.
+# Source is chosen by var.telematics_source: "files" (landing volume, Auto Loader) or "kafka" (Confluent Cloud).
+
+resources:
+  pipelines:
+    telematics_ingestion:
+      name: telematics_ingestion
+      catalog: ${var.catalog}
+      schema: ${resources.schemas.bronze.name}
+      serverless: true
+      # root_path is put on sys.path by the pipeline, so ../src makes `import databricks_end_to_end_project` work.
+      # (The editable install below is not picked up: its .pth file is never processed in the pipeline.)
+      root_path: "../src"
+
+      configuration:
+        telematics.source: ${var.telematics_source}
+        telematics.topic: ${var.telematics_topic}
+        telematics.secret_scope: ${resources.secret_scopes.kafka.name}
+        telematics.landing_path: /Volumes/${var.catalog}/${resources.schemas.landing.name}/${resources.volumes.landing_files.name}/telematics
+
+      libraries:
+        - glob:
+            include: ../src/telematics_ingestion/transformations/**
+
+      environment:
+        dependencies:
+          # Installs this project's package so transformations can import databricks_end_to_end_project.
+          - --editable ${workspace.file_path}

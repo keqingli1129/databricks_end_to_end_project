@@ -58,7 +58,7 @@ Pipeline sources are in `src/telematics_ingestion/transformations/`, one dataset
 
 Bundle resources:
 
-- **`resources/databricks_end_to_end_project.schema.yml`:** the 4 schemas, added next to the existing project schema
+- **`resources/databricks_end_to_end_project.yml`:** the 4 schemas, added next to the existing project schema
 - **`resources/kafka.secret_scope.yml`:** the secret scope
 - **`resources/telematics_ingestion.pipeline.yml`:** serverless and triggered. Its schema is `${resources.schemas.bronze.name}`, and its `configuration` holds the topic and the secret scope name.
 - **`resources/telematics_simulator.job.yml`:** a wheel task running `simulate --count 50 --interval 3`, with no schedule
@@ -76,7 +76,7 @@ simulate --sink files  ──►  /Volumes/<catalog>/<landing schema>/files/tele
                          telematics_raw  ──►  telematics
 ```
 
-- **Volume:** `resources/databricks_end_to_end_project.volume.yml` defines the managed volume `files` in the landing schema.
+- **Volume:** `resources/databricks_end_to_end_project.yml` defines the managed volume `files` in the landing schema.
 - **Switch:** the bundle variable `telematics_source` (`files` by default, or `kafka`) drives both the simulator job (`--sink`) and the pipeline configuration (`telematics.source`).
 - **Same parsing in both modes:** in `files` mode, `telematics_raw` reshapes each file line into Kafka's columns. `value` becomes the line as bytes, `topic` becomes the configured topic, `partition` and `offset` are null, and `timestamp` is the file modification time. So `telematics` and `parse_telematics` don't change.
 - **The simulator's file sink:** `--sink files --landing-path` writes one file per event through the Databricks SDK Files API. This works locally through the CLI profile and inside the job.
