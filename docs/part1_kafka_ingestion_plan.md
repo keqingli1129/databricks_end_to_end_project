@@ -130,7 +130,7 @@
 
   **Check:** the output contains `Created secret_scopes.kafka`.
 
-- [ ] **Step 2.5: Put the placeholder secrets**
+- [x] **Step 2.5: Put the placeholder secrets**
 
   **Do:** replace `<SCOPE>` with the name from step 2.3, then run:
 
@@ -142,7 +142,7 @@
 
   **Check:** `databricks secrets list-secrets <SCOPE> --profile DEFAULT` lists the 3 keys. It never shows the values.
 
-- [ ] **Step 2.6: Check the files**
+- [x] **Step 2.6: Check the files**
 
   **Do:** `git status --short`
 
