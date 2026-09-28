@@ -270,7 +270,7 @@
   - `kafka_config.spark_kafka_options(bootstrap_servers: str, api_key: str, api_secret: str, topic: str) -> dict[str, str]`
   - `kafka_config.producer_config(bootstrap_servers: str, api_key: str, api_secret: str) -> dict[str, str]`
 
-- [ ] **Step 4.1: Write the failing test**
+- [x] **Step 4.1: Write the failing test**
 
   **Do:** create `tests/telematics_kafka_config_test.py`:
 
@@ -327,13 +327,13 @@
 
   **Why:** Confluent Cloud needs the exact settings `SASL_SSL` + `PLAIN`. On Databricks, the login module class has a `kafkashaded.` prefix. These tests lock those settings in.
 
-- [ ] **Step 4.2: Run the test and see it fail**
+- [x] **Step 4.2: Run the test and see it fail**
 
   **Do:** `env -u PYTHONPATH uv run pytest tests/telematics_kafka_config_test.py -v`
 
   **Check:** it fails with `ImportError: cannot import name 'kafka_config'`.
 
-- [ ] **Step 4.3: Write the code**
+- [x] **Step 4.3: Write the code**
 
   **Do:** create `src/databricks_end_to_end_project/telematics/kafka_config.py`:
 
@@ -377,13 +377,13 @@
       }
   ```
 
-- [ ] **Step 4.4: Run the test and see it pass**
+- [x] **Step 4.4: Run the test and see it pass**
 
   **Do:** `env -u PYTHONPATH uv run pytest tests/telematics_kafka_config_test.py -v`
 
   **Check:** `3 passed`.
 
-- [ ] **Step 4.5: Check the files**
+- [x] **Step 4.5: Check the files**
 
   **Do:** `git status --short`
 
