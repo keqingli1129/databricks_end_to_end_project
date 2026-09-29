@@ -1055,6 +1055,8 @@
 
 ### Task 12 (later, optional): Switch to a real Confluent Cloud account
 
+> **Follow the detailed runbook instead of the steps below:** [part1_task12_confluent_runbook.md](part1_task12_confluent_runbook.md), written 2026-09-28 after Tasks 1–11 were done. It adds a backup option, a network check from serverless, the `partition`/`offset` proof, rollback and troubleshooting. The steps below are the original outline.
+
 Do this only when you have a Confluent account. It's the only step that proves data actually flows through Kafka end to end.
 
 - [ ] **Step 12.1: Create the Kafka side in Confluent Cloud**
