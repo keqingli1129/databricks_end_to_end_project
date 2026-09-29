@@ -986,7 +986,7 @@
 - Consumes `parsing.parse_telematics` and the streaming table `telematics_raw`.
 - Produces the streaming table `telematics` in bronze.
 
-- [ ] **Step 10.1: Create the parsed table**
+- [x] **Step 10.1: Create the parsed table**
 
   **Do:** create `src/telematics_ingestion/transformations/telematics.py`:
 
@@ -1003,19 +1003,19 @@
 
   **Why:** this is the transcript's "decoding and parsing" table. It reads from `telematics_raw`, so the source is read only once, and the pipeline graph shows `telematics_raw → telematics`.
 
-- [ ] **Step 10.2: Deploy and run**
+- [x] **Step 10.2: Deploy and run**
 
   **Do:** `env -u PYTHONPATH databricks bundle deploy --profile DEFAULT`, then `env -u PYTHONPATH databricks bundle run telematics_ingestion --profile DEFAULT`.
 
   **Check:** `telematics` shows 10 rows written. `telematics_raw` shows 0, because streaming reads only **new** input and there are no new files.
 
-- [ ] **Step 10.3: Look at the data**
+- [x] **Step 10.3: Look at the data**
 
   **Do:** in the SQL editor, run `SELECT * FROM e2e_dev.dev_keqingli1129_bronze.telematics LIMIT 10`.
 
   **Check:** the columns `chassis_number`, `speed`, `latitude`, `longitude` and `event_timestamp` are readable.
 
-- [ ] **Step 10.4: Send new events and watch only they get picked up**
+- [x] **Step 10.4: Send new events and watch only they get picked up**
 
   **Do:**
   1. Run `env -u PYTHONPATH databricks bundle run telematics_simulator --profile DEFAULT`, which sends 50 events at 3-second intervals, about 2½ minutes.
@@ -1023,7 +1023,7 @@
 
   **Check:** both tables show **50** new rows, not 60. The first 10 were read last time.
 
-- [ ] **Step 10.5: Check the files**
+- [x] **Step 10.5: Check the files**
 
   **Do:** `git status --short`
 
@@ -1036,7 +1036,7 @@
 **Files:**
 - Modify: `CLAUDE.md` (the Commands line for `databricks-connect` and the Architecture section)
 
-- [ ] **Step 11.1: Document the new pieces**
+- [x] **Step 11.1: Document the new pieces**
 
   **Do:**
 

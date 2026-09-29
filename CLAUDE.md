@@ -11,7 +11,7 @@ Shared agent guidance lives in AGENTS.md (read the `databricks-core` skill befor
 Everything uses `uv` (Python 3.12 only, per `pyproject.toml`) and the Databricks CLI. The `DEFAULT` profile points at the bundle's workspace host. Pass `--profile <name>` explicitly, and don't pick a profile for the user.
 
 ```bash
-uv sync --dev                                   # install deps (pytest, ruff, databricks-connect 16.4, databricks-dlt)
+uv sync --dev                                   # install deps (pytest, ruff, databricks-connect 18.0, databricks-dlt); versions pinned by `databricks environments setup-local`, don't hand-edit that block
 uv run pytest                                   # run all tests (needs workspace auth, see below)
 uv run pytest tests/sample_taxis_test.py::test_find_all_taxis   # single test
 uv run ruff check . && uv run ruff format .     # lint / format (line-length 120)
@@ -22,6 +22,9 @@ databricks bundle deploy -t prod --profile <p>  # deploy to prod
 databricks bundle run sample_job --profile <p>  # run the job
 databricks bundle run databricks_end_to_end_project_etl --profile <p>   # run the pipeline
 databricks bundle run databricks_end_to_end_project_etl --refresh <table_name> --profile <p>  # refresh one dataset
+databricks bundle run telematics_ingestion --profile <p>   # ingest new telematics into bronze
+databricks bundle run telematics_simulator --profile <p>   # send 50 fake events (sink per var.telematics_source)
+uv run simulate --dry-run --count 5                        # print fake events locally, no Databricks/Kafka
 ```
 
 ## Tests run against a remote workspace
@@ -45,6 +48,12 @@ This is a Databricks Declarative Automation Bundle (formerly Asset Bundle) built
   2. **Keeping them unowned protects the data.** A catalog created by hand could be adopted into the bundle with `bundle deployment bind`, but then `bundle destroy` would delete it.
 - **Schema**: the bundle owns it (`resources/databricks_end_to_end_project.yml`, which holds all project schemas and volumes), so `bundle destroy` deletes the schema and its tables. In `dev`, development mode renames it to `dev_<user>_<schema>`, so the job and pipeline must refer to `${resources.schemas.databricks_end_to_end_project_schema.name}`, not `${var.schema}`.
 - **Shared package** (`src/databricks_end_to_end_project/`): plain Python that is built into the wheel. `main.py` is the `main` console entry point. It takes `--catalog`/`--schema` and runs `USE CATALOG/SCHEMA`.
-- **Lakeflow Declarative Pipeline** (`src/databricks_end_to_end_project_etl/`): serverless, defined in `resources/databricks_end_to_end_project_etl.pipeline.yml`. Every file under `transformations/**` is loaded by a glob, so a new dataset file is picked up without changing any config. Convention: one dataset per file, using `from pyspark import pipelines as dp` with `@dp.table`. Datasets refer to each other by bare table name, resolved in the pipeline's catalog and schema. The pipeline gets project dependencies through `--editable ${workspace.file_path}`. Because pipeline dependencies are cached during development, add pipeline-only libraries to the pipeline YAML's `environment`, not to `pyproject.toml`.
+- **Lakeflow Declarative Pipeline** (`src/databricks_end_to_end_project_etl/`): serverless, defined in `resources/databricks_end_to_end_project_etl.pipeline.yml`. Every file under `transformations/**` is loaded by a glob, so a new dataset file is picked up without changing any config. Convention: one dataset per file, using `from pyspark import pipelines as dp` with `@dp.table`. Datasets refer to each other by bare table name, resolved in the pipeline's catalog and schema. The pipeline YAML installs the project with `--editable ${workspace.file_path}`, **but that alone does not make `import databricks_end_to_end_project` work inside a pipeline**: the editable install's `.pth` file is never processed there, so `src/` is not on `sys.path`. The pipeline does put its `root_path` on `sys.path`, so any pipeline whose code imports the shared package needs `root_path: "../src"` (see `telematics_ingestion`). This template pipeline still has the narrower root path and works only because its transformations don't import the package. Because pipeline dependencies are cached during development, add pipeline-only libraries to the pipeline YAML's `environment`, not to `pyproject.toml`.
 - **Job** (`resources/sample_job.job.yml`): runs once a day. `notebook_task` (`src/sample_notebook.ipynb`) runs first. Then two tasks run in parallel: `python_wheel_task`, which calls `main` from `../dist/*.whl`, and `refresh_pipeline`, which runs the pipeline.
+- **Medallion schemas and landing volume** (`resources/databricks_end_to_end_project.yml`): schemas `landing`, `bronze`, `silver`, `gold` (dev names them `dev_<user>_<layer>`; reference as `${resources.schemas.<layer>.name}`) and a managed volume `files` in landing. The bundle can create schemas and volumes inside the hand-made catalogs.
+- **Telematics ingestion** (design and step-by-step plan in `docs/part1_kafka_ingestion_*.md`, source material `docs/transcript_1.txt`): pipeline `telematics_ingestion` (`resources/telematics_ingestion.pipeline.yml`, serverless, default schema bronze, `root_path: ../src`) with streaming tables `telematics_raw` → `telematics`. `var.telematics_source` picks the source for both the pipeline (`telematics.source` config) and the simulator job (`--sink`):
+  - `files` (default): simulator JSON files in `/Volumes/<catalog>/<landing schema>/files/telematics/`, read with Auto Loader and reshaped into Kafka's columns.
+  - `kafka`: Confluent Cloud via SASL_SSL/PLAIN. Credentials live in the bundle-defined secret scope `kafka_<target>` (keys `bootstrap_servers`, `api_key`, `api_secret`; set with `databricks secrets put-secret`; currently placeholders). Switching source requires a full refresh of `telematics_raw`.
+  - Both sources produce the same columns, so `parse_telematics` (bronze keeps every field as a string; typing belongs in silver) works unchanged.
+- **Telematics package** (`src/databricks_end_to_end_project/telematics/`): `events.py` (fake events), `kafka_config.py` (Spark and producer settings, secret reading), `parsing.py`, `simulator.py` (the `simulate` console script: `--dry-run`, `--sink files --landing-path …`, or `--sink kafka`). Tests exist only for `events` and `kafka_config`; the user chose to skip tests for the rest.
 - `explorations/` notebooks are gitignored, so treat them as scratch work.
