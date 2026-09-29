@@ -1100,3 +1100,9 @@ Do this only when you have a Confluent account. It's the only step that proves d
   4. **Stop the pipeline afterwards, and set `continuous` back to `false` and redeploy.** A continuous pipeline runs, and uses serverless compute, until you stop it.
 
   This works in files mode too, with `--sink files`.
+
+---
+
+### Extra: continuous mode in files mode
+
+The transcript's live demo (a continuous pipeline plus the simulator) works without Kafka. Follow [part1_continuous_mode_files.md](part1_continuous_mode_files.md).
