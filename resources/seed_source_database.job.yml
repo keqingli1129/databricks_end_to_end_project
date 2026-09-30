@@ -1,0 +1,18 @@
+# Creates and fills the source tables (stand-in for the transcript's SQL Server).
+# Safe to re-run. No schedule; start it with: databricks bundle run seed_source_database
+
+resources:
+  jobs:
+    seed_source_database:
+      name: seed_source_database
+
+      tasks:
+        - task_key: seed
+          sql_task:
+            file:
+              path: ../src/source_database/seed.sql
+              source: WORKSPACE
+            warehouse_id: ${var.warehouse_id}
+            parameters:
+              catalog: ${var.catalog}
+              schema: ${resources.schemas.source.name}

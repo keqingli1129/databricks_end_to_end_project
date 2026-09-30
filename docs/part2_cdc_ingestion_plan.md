@@ -212,7 +212,7 @@
 
 **Files:** Create `resources/seed_source_database.job.yml`.
 
-- [ ] **Step 4.1: Create the job**
+- [x] **Step 4.1: Create the job**
 
   **Do:** create `resources/seed_source_database.job.yml`:
 
@@ -239,19 +239,19 @@
 
   **Why:** this runs the whole `.sql` file on the SQL warehouse. `parameters` become `:catalog` and `:schema` inside the script. `source: WORKSPACE` means the file comes from the bundle's uploaded files.
 
-- [ ] **Step 4.2: Validate and deploy**
+- [x] **Step 4.2: Validate and deploy**
 
   **Do:** validate, then deploy.
 
   **Check:** `Created jobs.seed_source_database`.
 
-- [ ] **Step 4.3: Run it**
+- [x] **Step 4.3: Run it**
 
   **Do:** `env -u PYTHONPATH databricks bundle run seed_source_database --profile DEFAULT`
 
   **Check:** `TERMINATED SUCCESS`. The warehouse starts automatically if it's stopped, which takes about a minute. **If it fails on `:catalog`**, meaning the parameter syntax isn't accepted, stop and look at the error before changing anything.
 
-- [ ] **Step 4.4: Look at the source data**
+- [x] **Step 4.4: Look at the source data**
 
   **Do:** in the SQL editor:
 
@@ -264,13 +264,13 @@
 
   **Check:** 7000, 12000 and 13000 rows, and readable sample claims.
 
-- [ ] **Step 4.5: Re-run the job to show it's safe to repeat**
+- [x] **Step 4.5: Re-run the job to show it's safe to repeat**
 
   **Do:** run the job again, then run the count query again.
 
   **Check:** the counts are **still** 7000 / 12000 / 13000.
 
-- [ ] **Step 4.6: Check the files** with `git status --short`. The job YAML should be new.
+- [x] **Step 4.6: Check the files** with `git status --short`. The job YAML should be new.
 
 ---
 
