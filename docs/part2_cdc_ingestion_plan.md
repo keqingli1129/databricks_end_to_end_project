@@ -367,7 +367,7 @@
 - Create: `src/cdc_ingestion/transformations/policy.py`
 - Create: `src/cdc_ingestion/transformations/claim.py`
 
-- [ ] **Step 6.1: Create `policy.py`**
+- [x] **Step 6.1: Create `policy.py`**
 
   **Do:** create `src/cdc_ingestion/transformations/policy.py`:
 
@@ -402,7 +402,7 @@
   )
   ```
 
-- [ ] **Step 6.2: Create `claim.py`**
+- [x] **Step 6.2: Create `claim.py`**
 
   **Do:** create `src/cdc_ingestion/transformations/claim.py`:
 
@@ -439,13 +439,13 @@
 
   **Why:** these are the same pattern as `customer.py`, one file per dataset. Only the table and key change.
 
-- [ ] **Step 6.3: Deploy and run**
+- [x] **Step 6.3: Deploy and run**
 
   **Do:** deploy, then run `cdc_ingestion`.
 
   **Check:** the pipeline graph shows the three flows side by side, just as the transcript ingests the three tables in parallel. Bronze has **customer 7000** (unchanged, since there are no new changes), **policy 12000** and **claim 13000**. In the Catalog, all three are **streaming tables**, next to `telematics`.
 
-- [ ] **Step 6.4: Check the files** with `git status --short`. `policy.py` and `claim.py` should be new.
+- [x] **Step 6.4: Check the files** with `git status --short`. `policy.py` and `claim.py` should be new.
 
 ---
 
