@@ -1,0 +1,19 @@
+# CDC ingestion (see docs/transcript_2.txt): applies inserts/updates/deletes from the source schema
+# into bronze streaming tables with AUTO CDC. Stands in for the Lakeflow Connect ingestion pipeline.
+
+resources:
+  pipelines:
+    cdc_ingestion:
+      name: cdc_ingestion
+      catalog: ${var.catalog}
+      schema: ${resources.schemas.bronze.name}
+      serverless: true
+      # root_path is put on sys.path by the pipeline (see part 1, step 9.4).
+      root_path: "../src"
+
+      configuration:
+        cdc.source_schema: ${var.catalog}.${resources.schemas.source.name}
+
+      libraries:
+        - glob:
+            include: ../src/cdc_ingestion/transformations/**

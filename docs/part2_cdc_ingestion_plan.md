@@ -280,7 +280,7 @@
 - Create: `resources/cdc_ingestion.pipeline.yml`
 - Create: `src/cdc_ingestion/transformations/customer.py`
 
-- [ ] **Step 5.1: Create the pipeline resource**
+- [x] **Step 5.1: Create the pipeline resource**
 
   **Do:** create `resources/cdc_ingestion.pipeline.yml`:
 
@@ -308,7 +308,7 @@
 
   **Why:** this is the transcript's "ingestion pipeline", writing into bronze. The configuration tells the code where the source tables are. There's no `environment` block, because this code needs no extra packages.
 
-- [ ] **Step 5.2: Create the customer table**
+- [x] **Step 5.2: Create the customer table**
 
   **Do:** create `src/cdc_ingestion/transformations/customer.py`:
 
@@ -351,13 +351,13 @@
     - `sequence_by` makes sure an older change can never overwrite a newer one.
   - **SCD Type 1** keeps only the latest values, so bronze mirrors the source, like the transcript's tables.
 
-- [ ] **Step 5.3: Validate, deploy and run**
+- [x] **Step 5.3: Validate, deploy and run**
 
   **Do:** validate, deploy, then `env -u PYTHONPATH databricks bundle run cdc_ingestion --profile DEFAULT`.
 
   **Check:** `Created pipelines.cdc_ingestion`, then `Update … is COMPLETED`, and `e2e_dev.dev_keqingli1129_bronze.customer` has **7000** rows.
 
-- [ ] **Step 5.4: Check the files** with `git status --short`. The pipeline YAML and `src/cdc_ingestion/` should be new.
+- [x] **Step 5.4: Check the files** with `git status --short`. The pipeline YAML and `src/cdc_ingestion/` should be new.
 
 ---
 
