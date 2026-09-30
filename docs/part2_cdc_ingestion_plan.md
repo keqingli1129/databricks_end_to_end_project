@@ -27,7 +27,7 @@
 
 **Files:** Modify `resources/databricks_end_to_end_project.yml` (the `schemas:` block).
 
-- [ ] **Step 1.1: Add the schema**
+- [x] **Step 1.1: Add the schema**
 
   **Do:** in `resources/databricks_end_to_end_project.yml`, add this after the `gold:` schema and before `volumes:`:
 
@@ -42,13 +42,13 @@
 
   **Why:** the transcript's three tables live in a SQL Server. Ours live in this schema. It's a separate schema, so it's clearly "the source system", not part of the medallion layers.
 
-- [ ] **Step 1.2: Validate and deploy**
+- [x] **Step 1.2: Validate and deploy**
 
   **Do:** `env -u PYTHONPATH databricks bundle validate --strict --profile DEFAULT`, then `env -u PYTHONPATH databricks bundle deploy --profile DEFAULT`.
 
   **Check:** `Created schemas.source`. The schema `e2e_dev.dev_keqingli1129_source` exists and is empty.
 
-- [ ] **Step 1.3: Check the files** with `git status --short`. Only `resources/databricks_end_to_end_project.yml` should be modified.
+- [x] **Step 1.3: Check the files** with `git status --short`. Only `resources/databricks_end_to_end_project.yml` should be modified.
 
 ---
 

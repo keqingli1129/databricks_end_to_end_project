@@ -28,6 +28,12 @@ resources:
       name: gold
       comment: Aggregated and joined data, ready for BI
 
+    # Stand-in for the transcript's SQL Server (see docs/transcript_2.txt).
+    source:
+      catalog_name: ${var.catalog}
+      name: source
+      comment: Source database stand-in - customer, policy, claim with Change Data Feed on
+
   volumes:
     # Raw files (e.g. simulator JSON) before they are ingested into Delta.
     landing_files:
