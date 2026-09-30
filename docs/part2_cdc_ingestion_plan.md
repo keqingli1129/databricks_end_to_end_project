@@ -83,7 +83,7 @@
 
 **Files:** Create `src/source_database/seed.sql`.
 
-- [ ] **Step 3.1: Write the table definitions**
+- [x] **Step 3.1: Write the table definitions**
 
   **Do:** create `src/source_database/seed.sql` with:
 
@@ -140,7 +140,7 @@
   - **`USE CATALOG/SCHEMA IDENTIFIER(:catalog)`:** reads the job's parameters. `:catalog` is a named parameter marker, and `IDENTIFIER()` lets it be used as a name.
   - **`delta.enableChangeDataFeed = true`:** this is the transcript's "enable change tracking and CDC". From now on, Delta records every insert, update and delete on these tables.
 
-- [ ] **Step 3.2: Add the seed data**
+- [x] **Step 3.2: Add the seed data**
 
   **Do:** append to `src/source_database/seed.sql`:
 
@@ -204,7 +204,7 @@
   - **`WHERE NOT EXISTS (SELECT 1 FROM <table>)`** makes each insert run **only while the table is empty**, so re-running the job adds nothing.
   - **Known test rows:** `CLM00000003` gets severity index 3 % 4 + 1 = 4, which is **Total Loss**. Task 7 changes it, just like the transcript.
 
-- [ ] **Step 3.3: Check the files** with `git status --short`. `src/source_database/` should be new.
+- [x] **Step 3.3: Check the files** with `git status --short`. `src/source_database/` should be new.
 
 ---
 
