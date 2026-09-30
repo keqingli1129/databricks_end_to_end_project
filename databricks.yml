@@ -24,6 +24,10 @@ variables:
   telematics_source:
     description: Where telematics events travel, "files" (landing volume + Auto Loader) or "kafka" (Confluent Cloud)
     default: files
+  warehouse_id:
+    description: SQL warehouse for SQL tasks (the seed job)
+    lookup:
+      warehouse: Serverless Starter Warehouse
 
 targets:
   dev:

@@ -56,7 +56,7 @@
 
 **Files:** Modify `databricks.yml` (the `variables:` block).
 
-- [ ] **Step 2.1: Add the lookup variable**
+- [x] **Step 2.1: Add the lookup variable**
 
   **Do:** in `databricks.yml`, under `variables:`, after `telematics_source`, add:
 
@@ -69,13 +69,13 @@
 
   **Why:** a SQL task needs a warehouse **ID**. `lookup` finds it **by name** at deploy time, so no ID is hardcoded, and a different workspace only needs a warehouse with that name.
 
-- [ ] **Step 2.2: Validate and see the resolved ID**
+- [x] **Step 2.2: Validate and see the resolved ID**
 
   **Do:** `env -u PYTHONPATH databricks bundle validate --strict --profile DEFAULT -o json | python3 -c 'import json,sys; print(json.load(sys.stdin)["variables"]["warehouse_id"]["value"])'`
 
   **Check:** it prints `cdcb7003ae7dd5ab`.
 
-- [ ] **Step 2.3: Check the files** with `git status --short`. `databricks.yml` should be modified.
+- [x] **Step 2.3: Check the files** with `git status --short`. `databricks.yml` should be modified.
 
 ---
 
