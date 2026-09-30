@@ -488,25 +488,25 @@
 
   **Check:** the customer is found, the claim is `Total Loss`, and there's no policy row.
 
-- [ ] **Step 7.3: Make the three changes in the source**
+- [x] **Step 7.3: Make the three changes in the source**
 
   **Do:** run section 2.
 
   **Check:** each statement reports 1 row affected.
 
-- [ ] **Step 7.4: Run the pipeline**
+- [x] **Step 7.4: Run the pipeline**
 
   **Do:** `env -u PYTHONPATH databricks bundle run cdc_ingestion --profile DEFAULT`
 
   **Check:** it completes. In the pipeline UI, each table shows its change: policy **upserted 1**, claim **upserted 1**, customer **deleted 1**. That's the transcript's "three changes were recognized".
 
-- [ ] **Step 7.5: Run the checks after the changes**
+- [x] **Step 7.5: Run the checks after the changes**
 
   **Do:** run section 1 again.
 
   **Check:** the policy `POL9999001` exists, `CLM00000003` is `Minor Damage`, and the customer `C007000` returns **no rows**. Counts: customer 6999, policy 12001, claim 13000.
 
-- [ ] **Step 7.6: Check the files** with `git status --short`. `changes.sql` should be new.
+- [x] **Step 7.6: Check the files** with `git status --short`. `changes.sql` should be new.
 
 ---
 
@@ -514,7 +514,7 @@
 
 **Files:** Modify `CLAUDE.md`.
 
-- [ ] **Step 8.1: Document part 2**
+- [x] **Step 8.1: Document part 2**
 
   **Do:**
   1. Add to the Commands block:

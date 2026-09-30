@@ -25,6 +25,8 @@ databricks bundle run databricks_end_to_end_project_etl --refresh <table_name> -
 databricks bundle run telematics_ingestion --profile <p>   # ingest new telematics into bronze
 databricks bundle run telematics_simulator --profile <p>   # send 50 fake events (sink per var.telematics_source)
 uv run simulate --dry-run --count 5                        # print fake events locally, no Databricks/Kafka
+databricks bundle run seed_source_database --profile <p>   # create/fill the CDC source tables (safe to re-run)
+databricks bundle run cdc_ingestion --profile <p>          # apply source inserts/updates/deletes to bronze
 ```
 
 ## Tests run against a remote workspace
@@ -56,4 +58,10 @@ This is a Databricks Declarative Automation Bundle (formerly Asset Bundle) built
   - `kafka`: Confluent Cloud via SASL_SSL/PLAIN. Credentials live in the bundle-defined secret scope `kafka_<target>` (keys `bootstrap_servers`, `api_key`, `api_secret`; set with `databricks secrets put-secret`; currently placeholders). Switching source requires a full refresh of `telematics_raw`.
   - Both sources produce the same columns, so `parse_telematics` (bronze keeps every field as a string; typing belongs in silver) works unchanged.
 - **Telematics package** (`src/databricks_end_to_end_project/telematics/`): `events.py` (fake events), `kafka_config.py` (Spark and producer settings, secret reading), `parsing.py`, `simulator.py` (the `simulate` console script: `--dry-run`, `--sink files --landing-path …`, or `--sink kafka`). Tests exist only for `events` and `kafka_config`; the user chose to skip tests for the rest.
+- **CDC ingestion** (design and step-by-step plan in `docs/part2_cdc_ingestion_*.md`, source material `docs/transcript_2.txt`). The transcript uses Lakeflow Connect from SQL Server, which can't run here: there's no reachable database, and its ingestion gateway needs classic compute, which Free Edition lacks. The stand-in:
+  - **Source:** schema `source` (dev: `dev_<user>_source`) holds `customer` (key `customer_id`), `policy` (`policy_no`) and `claim` (`claim_no`), all with Change Data Feed on. Policies `POL0000001`–`10` use the part 1 telematics chassis numbers `CHS000001`–`10`.
+  - **Seeding:** the job `seed_source_database` is a SQL task on `var.warehouse_id` (a `lookup` of "Serverless Starter Warehouse"). It runs `src/source_database/seed.sql`, which reads the `:catalog`/`:schema` named parameters, creates tables only if missing, and fills them only while empty.
+  - **Never `DROP` or `CREATE OR REPLACE` the source tables.** That breaks the change feed; the fix would be a full refresh of `cdc_ingestion`.
+  - **Pipeline:** `cdc_ingestion` (`resources/cdc_ingestion.pipeline.yml`, bronze, config `cdc.source_schema`) has one file per table in `src/cdc_ingestion/transformations/`. Each is a `@dp.temporary_view` over `readChangeFeed` (minus `update_preimage`), then `dp.create_streaming_table` and `dp.create_auto_cdc_flow` (SCD Type 1, `sequence_by="_commit_version"`, deletes applied, change-feed columns excluded).
+  - **Test:** `src/source_database/changes.sql` holds the insert/update/delete test for dev.
 - `explorations/` notebooks are gitignored, so treat them as scratch work.
