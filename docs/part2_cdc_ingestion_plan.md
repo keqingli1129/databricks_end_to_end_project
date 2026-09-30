@@ -453,7 +453,7 @@
 
 **Files:** Create `src/source_database/changes.sql`.
 
-- [ ] **Step 7.1: Write the change script**
+- [x] **Step 7.1: Write the change script**
 
   **Do:** create `src/source_database/changes.sql`:
 
@@ -482,7 +482,7 @@
 
   **Why:** this mirrors the transcript exactly: the prepared check queries, one insert (policy), one update (a claim's severity from Total Loss to Minor Damage) and one delete (customer).
 
-- [ ] **Step 7.2: Run the checks before the changes**
+- [x] **Step 7.2: Run the checks before the changes**
 
   **Do:** run section 1 in the SQL editor.
 
