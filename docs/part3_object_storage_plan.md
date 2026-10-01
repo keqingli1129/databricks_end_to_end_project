@@ -261,7 +261,7 @@
 
 **Files:** Create `src/object_storage_ingestion/transformations/claim_images_metadata.py`.
 
-- [ ] **Step 4.1: Create `claim_images_metadata.py`**
+- [x] **Step 4.1: Create `claim_images_metadata.py`**
 
   **Do:** create the file:
 
@@ -286,23 +286,23 @@
       )
   ```
 
-- [ ] **Step 4.2: Deploy and run**
+- [x] **Step 4.2: Deploy and run**
 
   **Do:** deploy, then run the pipeline.
 
   **Check:** `claim_images_metadata` writes **13,000** records, and `training_images` writes **0**, because there are no new files.
 
-- [ ] **Step 4.3: Upload a CSV with a new column (in the UI, like the transcript)**
+- [x] **Step 4.3: Upload a CSV with a new column (in the UI, like the transcript)**
 
   **Do:** Catalog → `e2e_dev` → `dev_keqingli1129_landing` → Volumes → `claims` → `metadata` → **Upload to this volume**. Choose `data/object_storage/prepared/schema_evolution/image_metadata_new_column_1.csv`.
 
   Or use the CLI: `databricks fs cp data/object_storage/prepared/schema_evolution/image_metadata_new_column_1.csv $V/claims/metadata/ --profile DEFAULT`
 
-- [ ] **Step 4.4: Run again and see the new column**
+- [x] **Step 4.4: Run again and see the new column**
 
   **Do:** run the pipeline.
 
-  **Check:** 1 record written, because Auto Loader skips the already-read file. The flow may restart once while it adds the column. Then run:
+  **Check:** 1 record written, because Auto Loader skips the already-read file. *(What happened on 2026-09-30: `bundle run` ended with `Error: update cancelled`. That's **expected**. The flow logged "encountered a schema change … a new update using the new schema will be automatically started", and the pipeline started a new update itself, with cause `SCHEMA_CHANGE`, which completed. The CLI only follows the first update. Check `databricks pipelines list-updates <id>` or the pipeline UI.)* Then run:
 
   ```sql
   SELECT claim_no, new_column_1 FROM e2e_dev.dev_keqingli1129_bronze.claim_images_metadata
