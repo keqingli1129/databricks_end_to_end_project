@@ -42,3 +42,17 @@ resources:
       name: files
       volume_type: MANAGED
       comment: Raw landing files, e.g. telematics JSON from the simulator
+
+    # Part 3 (see docs/transcript_3.txt): files ingested with Auto Loader.
+    claims_volume:
+      catalog_name: ${var.catalog}
+      schema_name: ${resources.schemas.landing.name}
+      name: claims
+      volume_type: MANAGED
+      comment: Claim photos (images/), their metadata CSVs (metadata/), and the cleanSource archive (archive/)
+    training_images_volume:
+      catalog_name: ${var.catalog}
+      schema_name: ${resources.schemas.landing.name}
+      name: training_images
+      volume_type: MANAGED
+      comment: Labelled car-damage images (ok / minor / major) for training the classifier later

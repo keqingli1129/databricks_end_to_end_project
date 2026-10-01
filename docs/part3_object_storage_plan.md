@@ -135,7 +135,7 @@
 
 **Files:** Modify `resources/databricks_end_to_end_project.yml` (the `volumes:` block).
 
-- [ ] **Step 2.1: Add the two volumes**
+- [x] **Step 2.1: Add the two volumes**
 
   **Do:** under `volumes:`, after `landing_files`, add:
 
@@ -158,13 +158,13 @@
 
   **Why:** these are the transcript's two landing volumes. The keys end in `_volume`, so they can't be confused with schema or table names.
 
-- [ ] **Step 2.2: Validate and deploy**
+- [x] **Step 2.2: Validate and deploy**
 
   **Do:** validate, then deploy.
 
   **Check:** `Created volumes.claims_volume` and `volumes.training_images_volume`.
 
-- [ ] **Step 2.3: Upload the files**
+- [x] **Step 2.3: Upload the files**
 
   **Do:**
 
@@ -172,17 +172,18 @@
   V=dbfs:/Volumes/e2e_dev/dev_keqingli1129_landing
   databricks fs cp -r data/object_storage/training_images        $V/training_images                   --profile DEFAULT
   databricks fs cp -r data/object_storage/claims/images          $V/claims/images                     --profile DEFAULT
+  databricks fs mkdir $V/claims/metadata --profile DEFAULT   # a single-file cp needs the target folder to exist
   databricks fs cp    data/object_storage/prepared/claims_metadata/image_metadata.csv $V/claims/metadata/image_metadata.csv --profile DEFAULT
   databricks fs mkdir $V/claims/archive --profile DEFAULT
   ```
 
   **Why:** this plays the role of "someone pushes their files into your bucket". Only the **prepared** CSV is uploaded, never the original. The `archive/` folder is created empty, as in the video.
 
-- [ ] **Step 2.4: Check the uploads**
+- [x] **Step 2.4: Check the uploads**
 
   **Do:** `databricks fs ls $V/training_images --profile DEFAULT | wc -l` (should be 56) and `databricks fs ls $V/claims/images --profile DEFAULT | wc -l` (should be 15). Also look in the Catalog UI: landing → Volumes → `claims` should show `images/`, `metadata/` and `archive/`.
 
-- [ ] **Step 2.5: Check the files** with `git status --short`. Only the resources YAML should be modified.
+- [x] **Step 2.5: Check the files** with `git status --short`. Only the resources YAML should be modified.
 
 ---
 
