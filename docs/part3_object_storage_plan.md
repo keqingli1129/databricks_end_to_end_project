@@ -48,7 +48,7 @@
 
   **Why:** 112 MB of images would stay in the git history for good, even if deleted later.
 
-- [ ] **Step 1.2: Write the prepare script**
+- [x] **Step 1.2: Write the prepare script**
 
   **Do:** create `src/object_storage/prepare_files.py`:
 
@@ -121,13 +121,13 @@
 
   **Why:** this is option A. The IDs match part 2, so later parts can join claim → image → policy → telematics. The two small CSVs are the transcript's "uploaded record with a new column".
 
-- [ ] **Step 1.3: Run it**
+- [x] **Step 1.3: Run it**
 
   **Do:** `env -u PYTHONPATH uv run python src/object_storage/prepare_files.py`
 
   **Check:** three "wrote" lines, with 13000, 1 and 1 rows. Then `head -3 data/object_storage/prepared/claims_metadata/image_metadata.csv` shows `CLM00000001,CHS007920` and so on. Claim 1's policy is `POL0007920`, which matches part 2's `source.claim`.
 
-- [ ] **Step 1.4: Check the files** with `git status --short`. You should see `.gitignore` modified and `src/object_storage/` new, but **not** `data/`.
+- [x] **Step 1.4: Check the files** with `git status --short`. You should see `.gitignore` modified and `src/object_storage/` new, but **not** `data/`.
 
 ---
 
