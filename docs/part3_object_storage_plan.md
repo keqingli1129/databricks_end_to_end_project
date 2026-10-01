@@ -193,7 +193,7 @@
 - Create: `resources/object_storage_ingestion.pipeline.yml`
 - Create: `src/object_storage_ingestion/transformations/training_images.py`
 
-- [ ] **Step 3.1: Create the pipeline resource**
+- [x] **Step 3.1: Create the pipeline resource**
 
   **Do:** create `resources/object_storage_ingestion.pipeline.yml`:
 
@@ -221,7 +221,7 @@
 
   **Why:** this is the transcript's new "ingest object storage" ETL pipeline, writing to bronze. The volume paths come from the resources, so nothing is hardcoded.
 
-- [ ] **Step 3.2: Create `training_images.py`**
+- [x] **Step 3.2: Create `training_images.py`**
 
   **Do:** create `src/object_storage_ingestion/transformations/training_images.py`:
 
@@ -241,19 +241,19 @@
 
   **Why:** it's the transcript's "most minimal implementation": `cloudFiles` (Auto Loader) plus `binaryFile`, because these are images. There's no checkpoint or schema location, because the pipeline handles both.
 
-- [ ] **Step 3.3: Validate, deploy and run**
+- [x] **Step 3.3: Validate, deploy and run**
 
   **Do:** validate, deploy, then `env -u PYTHONPATH databricks bundle run object_storage_ingestion --profile DEFAULT`.
 
   **Check:** the update completes, and `training_images` reports **56** written records.
 
-- [ ] **Step 3.4: Look at the table**
+- [x] **Step 3.4: Look at the table**
 
   **Do:** `SELECT path, modificationTime, length FROM e2e_dev.dev_keqingli1129_bronze.training_images LIMIT 5;`
 
   **Check:** the columns are `path`, `modificationTime`, `length` and `content` (the image bytes), as in the transcript. The labels are visible in `path`.
 
-- [ ] **Step 3.5: Check the files** with `git status --short`. The pipeline YAML and `src/object_storage_ingestion/` should be new.
+- [x] **Step 3.5: Check the files** with `git status --short`. The pipeline YAML and `src/object_storage_ingestion/` should be new.
 
 ---
 

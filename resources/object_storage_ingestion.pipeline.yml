@@ -1,0 +1,19 @@
+# Object-storage ingestion (see docs/transcript_3.txt): Auto Loader from landing volumes into bronze.
+
+resources:
+  pipelines:
+    object_storage_ingestion:
+      name: object_storage_ingestion
+      catalog: ${var.catalog}
+      schema: ${resources.schemas.bronze.name}
+      serverless: true
+      # root_path is put on sys.path by the pipeline (see part 1, step 9.4).
+      root_path: "../src"
+
+      configuration:
+        object_storage.training_images_path: /Volumes/${var.catalog}/${resources.schemas.landing.name}/${resources.volumes.training_images_volume.name}
+        object_storage.claim_metadata_path: /Volumes/${var.catalog}/${resources.schemas.landing.name}/${resources.volumes.claims_volume.name}/metadata
+
+      libraries:
+        - glob:
+            include: ../src/object_storage_ingestion/transformations/**
