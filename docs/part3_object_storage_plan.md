@@ -356,7 +356,7 @@
 - Create: `src/object_storage/claim_images.py` (a notebook)
 - Create: `resources/ingest_claim_images.job.yml`
 
-- [ ] **Step 6.1: Create the notebook**
+- [x] **Step 6.1: Create the notebook**
 
   **Do:** create `src/object_storage/claim_images.py`:
 
@@ -412,7 +412,7 @@
 
   **Why:** this is the transcript's notebook. The three `cleanSource` settings do the archiving. `availableNow` is the transcript's "batch mode, not a continuously running stream". The last cell shows where the files are.
 
-- [ ] **Step 6.2: Create the job**
+- [x] **Step 6.2: Create the job**
 
   **Do:** create `resources/ingest_claim_images.job.yml`:
 
@@ -436,19 +436,21 @@
 
   **Why:** the parameters replace the widget defaults with the target's real names. With no compute settings, the task runs on serverless.
 
-- [ ] **Step 6.3: Validate, deploy and run 1 (ingest)**
+- [x] **Step 6.3: Validate, deploy and run 1 (ingest)**
 
   **Do:** validate, deploy, then `env -u PYTHONPATH databricks bundle run ingest_claim_images --profile DEFAULT`.
 
   **Check:** `TERMINATED SUCCESS`. The last cell prints: rows **15**, images/ **15**, archive/ **0**. Nothing is moved yet, because the docs say the earliest cleanup is two runs later.
 
-- [ ] **Step 6.4: Run 2 (with one new file)**
+- [x] **Step 6.4: Run 2 (with one new file)**
 
   **Do:** wait **at least 1 minute** for the retention. Upload one new image, for example a copy: `databricks fs cp data/object_storage/claims/images/1_High.jpg $V/claims/images/6_High.jpg --profile DEFAULT`. Run the job again.
 
   **Check:** rows **16**. The archive may still be **0**, because this run only "commits" the first 15 files.
 
-- [ ] **Step 6.5: Run 3 (with another new file) and see the archive**
+  > **What happened on 2026-10-01:** cleanup started sooner than the docs' "earliest at run N+2". After run 2, **10 of the 15** originals (`1_High` … `4_High`, in name order) had already moved to `archive/`, with move time 20:32:55, just before the run finished. `images/` kept `4_Low`, `4_Medium`, `5_*` and the new `6_High`. So run 2 moved files that were committed in run 1 and older than the retention. The cleanup seems to work through files in limited batches per run.
+
+- [x] **Step 6.5: Run 3 (with another new file) and see the archive**
 
   **Do:** wait at least 1 minute. Upload `…/1_Low.jpg` as `$V/claims/images/6_Low.jpg`. Run the job.
 
@@ -456,7 +458,9 @@
 
   **If archive/ is still 0:** repeat this step once, with one more new file. Cleanup only runs while new files are being processed.
 
-- [ ] **Step 6.6: Check the files** with `git status --short`. The notebook and job YAML should be new.
+  > **What happened on 2026-10-01:** after run 3, all **15 originals** are in `archive/`, and `images/` holds only `6_High.jpg` (read in run 2, not yet past retention at the time of cleanup) and `6_Low.jpg` (read in run 3). The table has **17 rows**, one per distinct file.
+
+- [x] **Step 6.6: Check the files** with `git status --short`. The notebook and job YAML should be new.
 
 ---
 

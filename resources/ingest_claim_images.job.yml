@@ -1,0 +1,15 @@
+# Runs the claim-images notebook (Auto Loader + cleanSource archiving). No schedule.
+# Start it with: databricks bundle run ingest_claim_images
+
+resources:
+  jobs:
+    ingest_claim_images:
+      name: ingest_claim_images
+
+      tasks:
+        - task_key: ingest
+          notebook_task:
+            notebook_path: ../src/object_storage/claim_images.py
+            base_parameters:
+              claims_volume_path: /Volumes/${var.catalog}/${resources.schemas.landing.name}/${resources.volumes.claims_volume.name}
+              target_table: ${var.catalog}.${resources.schemas.bronze.name}.claim_images
