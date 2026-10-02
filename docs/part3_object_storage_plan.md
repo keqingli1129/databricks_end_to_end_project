@@ -317,7 +317,7 @@
 
 **Files:** Modify `src/object_storage_ingestion/transformations/claim_images_metadata.py` (Task 4).
 
-- [ ] **Step 5.1: Switch to rescue mode**
+- [x] **Step 5.1: Switch to rescue mode**
 
   **Do:** in `claim_images_metadata.py`, replace the comment line and the option with:
 
@@ -326,7 +326,7 @@
           .option("cloudFiles.schemaEvolutionMode", "rescue")
   ```
 
-- [ ] **Step 5.2: Deploy, upload the second CSV and run**
+- [x] **Step 5.2: Deploy, upload the second CSV and run**
 
   **Do:**
   1. Deploy.
@@ -335,7 +335,7 @@
 
   **Check:** 1 record written. **No `new_column_2` column** appears in the table.
 
-- [ ] **Step 5.3: See the rescued data**
+- [x] **Step 5.3: See the rescued data**
 
   **Do:**
 
@@ -346,7 +346,7 @@
 
   **Check:** 1 row. `_rescued_data` holds JSON with `new_column_2`, something like `{"new_column_2":"new column value 2", "_file_path": …}`. `new_column_1` is a normal column, because it already existed.
 
-- [ ] **Step 5.4: Check the files** with `git status --short`. `claim_images_metadata.py` should be new.
+- [x] **Step 5.4: Check the files** with `git status --short`. `claim_images_metadata.py` should be new.
 
 ---
 

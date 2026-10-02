@@ -12,7 +12,7 @@ def claim_images_metadata():
         spark.readStream.format("cloudFiles")
         .option("cloudFiles.format", "csv")
         .option("header", "true")
-        # Default mode, written out to make it visible: new columns are added to the table schema.
-        .option("cloudFiles.schemaEvolutionMode", "addNewColumns")
+        # Rescue mode: the table schema stays fixed; values of unknown columns go into _rescued_data.
+        .option("cloudFiles.schemaEvolutionMode", "rescue")
         .load(SOURCE_PATH)
     )
