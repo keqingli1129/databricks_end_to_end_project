@@ -27,6 +27,9 @@ databricks bundle run telematics_simulator --profile <p>   # send 50 fake events
 uv run simulate --dry-run --count 5                        # print fake events locally, no Databricks/Kafka
 databricks bundle run seed_source_database --profile <p>   # create/fill the CDC source tables (safe to re-run)
 databricks bundle run cdc_ingestion --profile <p>          # apply source inserts/updates/deletes to bronze
+uv run python src/object_storage/prepare_files.py          # local: rewrite image-metadata IDs to part 2's, make schema-demo CSVs
+databricks bundle run object_storage_ingestion --profile <p>   # Auto Loader: training_images, claim_images_metadata
+databricks bundle run ingest_claim_images --profile <p>        # notebook: claim_images + cleanSource archive
 ```
 
 ## Tests run against a remote workspace
@@ -64,4 +67,11 @@ This is a Databricks Declarative Automation Bundle (formerly Asset Bundle) built
   - **Never `DROP` or `CREATE OR REPLACE` the source tables.** That breaks the change feed; the fix would be a full refresh of `cdc_ingestion`.
   - **Pipeline:** `cdc_ingestion` (`resources/cdc_ingestion.pipeline.yml`, bronze, config `cdc.source_schema`) has one file per table in `src/cdc_ingestion/transformations/`. Each is a `@dp.temporary_view` over `readChangeFeed` (minus `update_preimage`), then `dp.create_streaming_table` and `dp.create_auto_cdc_flow` (SCD Type 1, `sequence_by="_commit_version"`, deletes applied, change-feed columns excluded).
   - **Test:** `src/source_database/changes.sql` holds the insert/update/delete test for dev.
+- **Object-storage ingestion** (design and step-by-step plan in `docs/part3_object_storage_*.md`, source material `docs/transcript_3.txt`):
+  - **Volumes:** managed volumes in landing, `claims` (`images/`, `metadata/`, `archive/`, `_autoloader/`) and `training_images`. Their resource keys are `claims_volume` and `training_images_volume`.
+  - **Raw files:** these live locally in `data/object_storage/`, which is gitignored and must never be committed (about 112 MB of images).
+  - **The prepare script:** `src/object_storage/prepare_files.py` rewrites the metadata CSV's UUID `claim_no` and VIN `chassis_no` to part 2's `CLM%08d(n)` and `CHS%06d((n*7919)%12000+1)`. It writes the result, plus the schema-evolution demo CSVs, into `data/object_storage/prepared/`. Upload with `databricks fs cp` (paths need the `dbfs:/Volumes/...` prefix; a single-file `cp` needs the target folder to exist).
+  - **Pipeline `object_storage_ingestion` (bronze):** `training_images` (cloudFiles `binaryFile`, 56 rows) and `claim_images_metadata` (cloudFiles csv, now `schemaEvolutionMode=rescue`: unknown columns go into `_rescued_data`; `new_column_1` exists from the earlier `addNewColumns` demo). Under `addNewColumns`, a new column makes `bundle run` print `Error: update cancelled`; the pipeline then starts a fresh update itself, with cause `SCHEMA_CHANGE`.
+  - **Job `ingest_claim_images`:** runs the plain-PySpark notebook `src/object_storage/claim_images.py` (Databricks `.py` notebook source; widgets overridden by `base_parameters`). It reads cloudFiles `binaryFile` with a hand-set checkpoint and schema location under `claims/_autoloader/claim_images`, uses `trigger(availableNow=True)`, and writes to `bronze.claim_images`, a regular Delta table that no pipeline owns.
+  - **Archiving:** `cleanSource=MOVE` to `claims/archive/`, with a 1-minute retention. Cleanup only happens during runs that have new files. A file moves once it was committed in an earlier run and is older than the retention, and only a limited batch moves per run. So expect files to move over the next one or two runs, not immediately.
 - `explorations/` notebooks are gitignored, so treat them as scratch work.
