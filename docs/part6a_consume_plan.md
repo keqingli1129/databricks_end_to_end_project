@@ -19,7 +19,7 @@
 
 **Files:** Modify `src/transformations/transformations/silver_to_gold.py` (part 4).
 
-- [ ] **Step 1.1: Add the claim-checks materialized view**
+- [x] **Step 1.1: Add the claim-checks materialized view**
 
   **Do:** append to `silver_to_gold.py`:
 
@@ -107,13 +107,13 @@
   - **Comments in `schema`:** they explain every column to people and to **Genie**.
   - **Null checks:** a null check (no telematics, no prediction) doesn't count as a failure.
 
-- [ ] **Step 1.2: Deploy and run the pipeline**
+- [x] **Step 1.2: Deploy and run the pipeline**
 
   **Do:** deploy, then `env -u PYTHONPATH databricks bundle run transformations --profile DEFAULT`.
 
   **Check:** `gold.claim_checks` is created, with about **12,999** rows.
 
-- [ ] **Step 1.3: Look at the results**
+- [x] **Step 1.3: Look at the results**
 
   **Do:**
 
@@ -128,7 +128,7 @@
 
   **Check:** both statuses appear, with mostly `needs_review`. Each check has some failures, and the ~10 claims with telematics show `speed_ok`.
 
-- [ ] **Step 1.4: Check the files** with `git status --short`.
+- [x] **Step 1.4: Check the files** with `git status --short`.
 
 ---
 

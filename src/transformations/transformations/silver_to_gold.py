@@ -60,3 +60,93 @@ def customer_claim_policy_telematics():
     return spark.read.table(f"{GOLD}.customer_claim_policy").join(
         spark.read.table(f"{GOLD}.aggregated_telematics"), "chassis_number", "left"
     )
+
+
+# --- Claim checks (part 6): the business rules used by the dashboard, Genie and the app. ---
+
+EXPECTED_DAMAGE = {"Trivial Damage": "ok", "Minor Damage": "minor", "Major Damage": "major", "Total Loss": "major"}
+COVERAGE_LIMITS = {"COMPREHENSIVE": 20000, "COLLISION": 15000, "LIABILITY": 10000}
+MAX_SPEED_KMH = 150
+CHECKS = ["severity_match", "amount_within_limit", "policy_valid", "speed_ok"]
+
+
+def _as_map(mapping):
+    return F.create_map(*[F.lit(x) for pair in mapping.items() for x in pair])
+
+
+CLAIM_CHECKS_SCHEMA = """
+    claim_no STRING COMMENT 'Claim number (key), e.g. CLM00000001',
+    policy_no STRING COMMENT 'Policy the claim was made on',
+    customer_id STRING COMMENT 'Customer who owns the policy',
+    full_name STRING COMMENT 'Customer full name',
+    incident_date DATE COMMENT 'Date of the accident',
+    incident_type STRING COMMENT 'COLLISION, THEFT, WEATHER, VANDALISM or GLASS',
+    incident_severity STRING COMMENT 'Severity claimed by the customer: Trivial Damage < Minor Damage < Major Damage < Total Loss',
+    claim_amount DECIMAL(12,2) COMMENT 'Amount claimed, in USD',
+    coverage STRING COMMENT 'Policy coverage: COMPREHENSIVE, COLLISION or LIABILITY',
+    coverage_limit INT COMMENT 'Maximum claim amount for the coverage, in USD',
+    start_date DATE COMMENT 'Policy start date',
+    end_date DATE COMMENT 'Policy end date',
+    chassis_number STRING COMMENT 'Car chassis number (links to telematics)',
+    max_speed DOUBLE COMMENT 'Highest speed recorded by the car telematics, km/h; NULL if the car has no telematics',
+    image_name STRING COMMENT 'Photo the customer uploaded for the claim',
+    expected_damage STRING COMMENT 'Claimed severity mapped to the model labels ok/minor/major',
+    predicted_damage STRING COMMENT 'Damage predicted from the photo by the ML model: ok, minor or major',
+    severity_match BOOLEAN COMMENT 'TRUE if the predicted damage equals the expected damage; NULL if no prediction',
+    amount_within_limit BOOLEAN COMMENT 'TRUE if claim_amount <= coverage_limit',
+    policy_valid BOOLEAN COMMENT 'TRUE if incident_date is within the policy start and end date',
+    speed_ok BOOLEAN COMMENT 'TRUE if max_speed <= 150 km/h; NULL if the car has no telematics',
+    failed_checks ARRAY<STRING> COMMENT 'Names of the checks that failed',
+    claim_status STRING COMMENT 'auto_approved if no check failed, otherwise needs_review'
+"""
+
+
+@dp.materialized_view(
+    name=f"{GOLD}.claim_checks",
+    comment="One row per claim with the automatic claim checks and the resulting status (auto_approved / needs_review).",
+    table_properties=GOLD_PROPERTIES,
+    schema=CLAIM_CHECKS_SCHEMA,
+)
+def claim_checks():
+    claims = spark.read.table(f"{GOLD}.customer_claim_policy_telematics")
+    photos = spark.read.table("claim_images_metadata").groupBy("claim_no").agg(F.first("image_name").alias("image_name"))
+    predictions = spark.read.table(f"{GOLD}.claim_image_predictions").select(
+        "image_name", F.col("damage_prediction").alias("predicted_damage")
+    )
+    checked = (
+        claims.join(photos, "claim_no", "left")
+        .join(predictions, "image_name", "left")
+        .withColumn("expected_damage", _as_map(EXPECTED_DAMAGE)[F.col("incident_severity")])
+        .withColumn("coverage_limit", _as_map(COVERAGE_LIMITS)[F.col("coverage")].cast("int"))
+        .withColumn("severity_match", F.col("expected_damage") == F.col("predicted_damage"))
+        .withColumn("amount_within_limit", F.col("claim_amount") <= F.col("coverage_limit"))
+        .withColumn("policy_valid", F.col("incident_date").between(F.col("start_date"), F.col("end_date")))
+        .withColumn("speed_ok", F.col("max_speed") <= MAX_SPEED_KMH)
+        .withColumn(
+            "failed_checks",
+            F.filter(F.array(*[F.when(~F.col(c), F.lit(c)) for c in CHECKS]), lambda name: name.isNotNull()),
+        )
+        .withColumn("claim_status", F.when(F.size("failed_checks") == 0, "auto_approved").otherwise("needs_review"))
+    )
+    return checked.select(
+        "claim_no",
+        "policy_no",
+        "customer_id",
+        "full_name",
+        "incident_date",
+        "incident_type",
+        "incident_severity",
+        F.col("claim_amount").cast("decimal(12,2)").alias("claim_amount"),
+        "coverage",
+        "coverage_limit",
+        "start_date",
+        "end_date",
+        "chassis_number",
+        "max_speed",
+        "image_name",
+        "expected_damage",
+        "predicted_damage",
+        *CHECKS,
+        "failed_checks",
+        "claim_status",
+    )
