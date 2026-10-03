@@ -1,0 +1,27 @@
+# Part 5 (see docs/transcript_5.txt): car-damage severity classifier.
+# Experiment + Unity Catalog registered model + training/inference job (+ serving endpoint, Task 5).
+
+resources:
+  experiments:
+    # Keys must be unique across ALL resource types, hence the suffix (the job is also "damage_classifier").
+    damage_classifier_experiment:
+      name: /Users/${workspace.current_user.userName}/e2e_damage_classifier
+
+  registered_models:
+    claims_damage_level:
+      catalog_name: ${var.catalog}
+      schema_name: ${resources.schemas.gold.name}
+      name: claims_damage_level
+      comment: ResNet-18 fine-tuned to classify car damage in a photo as ok / minor / major.
+      # No "aliases" here: the "prod" alias is set by the training notebook.
+
+  jobs:
+    damage_classifier:
+      name: damage_classifier
+      tasks:
+        - task_key: prepare_images
+          notebook_task:
+            notebook_path: ../src/ml/01_prepare_images.py
+            base_parameters:
+              source_table: ${var.catalog}.${resources.schemas.silver.name}.training_images
+              target_table: ${var.catalog}.${resources.schemas.silver.name}.training_images_resized

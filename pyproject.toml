@@ -20,6 +20,7 @@ dev = [
     "databricks-connect~=18.0.0",
     "ipykernel",
     "geopy==2.4.1",
+    "pillow>=11.1.0",
 ]
 
 [project.scripts]
@@ -33,7 +34,7 @@ build-backend = "hatchling.build"
 [tool.ruff]
 line-length = 120
 # Databricks notebooks and pipelines provide these as globals (no import needed).
-builtins = ["spark", "dbutils"]
+builtins = ["spark", "dbutils", "display"]
 
 [tool.databricks.environment]
 environment_version = "5"
