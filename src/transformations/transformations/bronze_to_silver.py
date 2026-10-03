@@ -36,3 +36,47 @@ def customer():
         .withColumn("full_name", F.concat_ws(" ", "first_name", "last_name"))
         .withColumn("age", F.floor(F.months_between(F.current_date(), "date_of_birth") / 12).cast("int"))
     )
+
+
+# --- From append-only bronze tables (parts 1 and 3): streaming tables, each run processes only new rows. ---
+
+
+@dp.table(name="telematics", comment="Typed telematics events.", table_properties=SILVER_PROPERTIES)
+@dp.expect_all_or_drop({"valid_chassis_number": "chassis_number IS NOT NULL", "valid_speed": "speed BETWEEN 0 AND 250"})
+def telematics():
+    return spark.readStream.table(f"{BRONZE}.telematics").select(
+        "chassis_number",
+        F.col("speed").cast("double").alias("speed"),
+        F.col("latitude").cast("double").alias("latitude"),
+        F.col("longitude").cast("double").alias("longitude"),
+        F.col("event_timestamp").cast("timestamp").alias("event_timestamp"),
+        F.col("stream_metadata.timestamp").alias("ingested_at"),
+    )
+
+
+@dp.table(name="training_images", comment="Training images with their label (ok/minor/major).", table_properties=SILVER_PROPERTIES)
+@dp.expect_all_or_drop({"valid_label": "label IN ('ok', 'minor', 'major')", "non_empty_image": "length > 0"})
+def training_images():
+    return (
+        spark.readStream.table(f"{BRONZE}.training_images")
+        .withColumn("file_name", F.regexp_extract("path", r"[^/]+$", 0))
+        .withColumn("label", F.regexp_extract("file_name", r"-(ok|minor|major)", 1))
+    )
+
+
+@dp.table(name="claim_images", comment="Customer-uploaded claim photos with their file name.", table_properties=SILVER_PROPERTIES)
+@dp.expect_all_or_drop({"valid_image_name": "image_name IS NOT NULL AND image_name != ''", "non_empty_image": "length > 0"})
+def claim_images():
+    return spark.readStream.table(f"{BRONZE}.claim_images").withColumn(
+        "image_name", F.regexp_extract("path", r"[^/]+$", 0)
+    )
+
+
+@dp.table(name="claim_images_metadata", comment="Which image belongs to which claim and car.", table_properties=SILVER_PROPERTIES)
+@dp.expect_all_or_drop({"valid_claim_no": "claim_no IS NOT NULL", "valid_image_id": "image_id IS NOT NULL"})
+def claim_images_metadata():
+    return (
+        spark.readStream.table(f"{BRONZE}.claim_images_metadata")
+        .withColumn("image_id", F.col("image_id").cast("int"))
+        .drop("_rescued_data", "new_column_1")
+    )

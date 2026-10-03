@@ -155,7 +155,7 @@
 
   **Why:** `abs(premium)` is the transcript's fix for negative premiums. For customers, the transcript **splits** a combined name. Our bronze already has the parts, so we **build** `full_name` instead, and add `age`.
 
-- [ ] **Step 2.2: Add the streaming silver tables**
+- [x] **Step 2.2: Add the streaming silver tables**
 
   **Do:** append to `bronze_to_silver.py`:
 
@@ -211,7 +211,7 @@
   - **The training image label** moves from the file name into its own column, which the ML part will need.
   - **`_rescued_data` and the demo column** are dropped, as the transcript does.
 
-- [ ] **Step 2.3: Deploy and run**
+- [x] **Step 2.3: Deploy and run**
 
   **Do:** deploy, then run `transformations`.
 
@@ -229,7 +229,7 @@
 
   All checks should show 100% passed.
 
-- [ ] **Step 2.4 (optional): See a check drop a bad row**
+- [ ] **Step 2.4 (optional): See a check drop a bad row** *(skipped on 2026-10-02, can be done any time)*
 
   **Do:**
   1. In the SQL editor, insert a claim with a negative amount at the **source**:
@@ -247,7 +247,7 @@
   - **The UI shows the drop:** the `valid_claim_amount` check in the pipeline UI shows **1 dropped** record.
   - **Clean up afterwards** if you want: `DELETE FROM e2e_dev.dev_keqingli1129_source.claim WHERE claim_no = 'CLM99999999';`, then run both pipelines again.
 
-- [ ] **Step 2.5: Check the files** with `git status --short`. `bronze_to_silver.py` should be modified.
+- [x] **Step 2.5: Check the files** with `git status --short`. `bronze_to_silver.py` should be modified.
 
 ---
 
