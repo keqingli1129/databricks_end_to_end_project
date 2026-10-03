@@ -573,6 +573,8 @@
 
 ### Task 7 (later): Option B, train on your laptop
 
+*Dropped by the user on 2026-10-03: keeping the main `.venv` matched to serverless, so `transformers` can't go into it, and a separate ML environment wasn't wanted.*
+
 > **Environment note (2026-10-03):** the main `.venv`'s dev group already has `torch` 2.14.1+cu130 (it detects the RTX 5070) and `mlflow` 3.8.1. **`transformers` can't go into the main `.venv`:** the `setup-local` constraint `huggingface-hub~=1.2.4` (serverless environment 5) fits no transformers release (4.x needs hub <1.0, 5.x needs ≥1.3). Option B therefore needs a **separate local ML environment**, e.g. `ml/` with its own `pyproject.toml`: torch with CUDA for the 5070 (cu128 or newer), plus transformers, mlflow and pillow. VS Code points at it while working on ML. Until then, `from transformers import …` shows a yellow line in the editor, which is harmless.
 
 To be planned when Tasks 1–6 are done. The idea:
