@@ -36,3 +36,13 @@ resources:
               model_name: ${var.catalog}.${resources.schemas.gold.name}.${resources.registered_models.claims_damage_level.name}
               base_model: microsoft/resnet-18
               epochs: "5"
+        - task_key: batch_inference
+          depends_on:
+            - task_key: train_and_register
+          notebook_task:
+            notebook_path: ../src/ml/03_batch_inference.py
+            base_parameters:
+              model_name: ${var.catalog}.${resources.schemas.gold.name}.${resources.registered_models.claims_damage_level.name}
+              training_table: ${var.catalog}.${resources.schemas.silver.name}.training_images_resized
+              claim_images_table: ${var.catalog}.${resources.schemas.silver.name}.claim_images
+              gold_schema: ${var.catalog}.${resources.schemas.gold.name}

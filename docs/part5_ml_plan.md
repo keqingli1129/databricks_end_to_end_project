@@ -399,7 +399,7 @@
 - Create: `src/ml/03_batch_inference.py`
 - Modify: `resources/damage_classifier.yml` (add a task)
 
-- [ ] **Step 4.1: Create the batch-inference notebook**
+- [x] **Step 4.1: Create the batch-inference notebook**
 
   **Do:** create `src/ml/03_batch_inference.py`:
 
@@ -470,7 +470,7 @@
 
   **Why:** `mlflow.pyfunc.spark_udf` turns the registered model into a Spark column function. That's the transcript's "register a Spark UDF … batch inference". `@prod` always picks the version the alias points to. `pandas.crosstab` builds the confusion matrix, with actual labels as rows and predictions as columns.
 
-- [ ] **Step 4.2: Add the inference task to the job**
+- [x] **Step 4.2: Add the inference task to the job**
 
   **Do:** append under `tasks:`:
 
@@ -487,7 +487,7 @@
                 gold_schema: ${var.catalog}.${resources.schemas.gold.name}
   ```
 
-- [ ] **Step 4.3: Deploy and run the inference task only**
+- [x] **Step 4.3: Deploy and run the inference task only**
 
   **Do:** deploy, then `env -u PYTHONPATH databricks bundle run damage_classifier --only batch_inference --profile DEFAULT`.
 
@@ -498,7 +498,7 @@
 
   **If the UDF fails because the workers can't find `torch`:** change the notebook to score on the driver. Use `mlflow.pyfunc.load_model(...)`, apply it to `toPandas()`, then write the result with `spark.createDataFrame(...)`.
 
-- [ ] **Step 4.4: Check the files** with `git status --short`.
+- [x] **Step 4.4: Check the files** with `git status --short`.
 
 ---
 
