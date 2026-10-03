@@ -21,6 +21,8 @@ dev = [
     "ipykernel",
     "geopy==2.4.1",
     "pillow>=11.1.0",
+    "torch>=2.14.1",
+    "mlflow~=3.8.1",
 ]
 
 [project.scripts]

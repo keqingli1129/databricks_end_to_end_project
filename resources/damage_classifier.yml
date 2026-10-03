@@ -25,3 +25,14 @@ resources:
             base_parameters:
               source_table: ${var.catalog}.${resources.schemas.silver.name}.training_images
               target_table: ${var.catalog}.${resources.schemas.silver.name}.training_images_resized
+        - task_key: train_and_register
+          depends_on:
+            - task_key: prepare_images
+          notebook_task:
+            notebook_path: ../src/ml/02_train_and_register.py
+            base_parameters:
+              training_table: ${var.catalog}.${resources.schemas.silver.name}.training_images_resized
+              experiment_name: ${resources.experiments.damage_classifier_experiment.name}
+              model_name: ${var.catalog}.${resources.schemas.gold.name}.${resources.registered_models.claims_damage_level.name}
+              base_model: microsoft/resnet-18
+              epochs: "5"

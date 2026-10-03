@@ -189,7 +189,7 @@
 - Create: `src/ml/02_train_and_register.py`
 - Modify: `resources/damage_classifier.yml` (add a task)
 
-- [ ] **Step 3.1: Create the training notebook**
+- [x] **Step 3.1: Create the training notebook**
 
   **Do:** create `src/ml/02_train_and_register.py`:
 
@@ -359,7 +359,7 @@
   - **The pyfunc wrapper:** the transcript's "wrap the model so we can register it and do inference". It accepts raw bytes for batch scoring, and base64 strings for serving.
   - **`register_model` plus the alias:** a new UC model version, labelled `prod`.
 
-- [ ] **Step 3.2: Add the training task to the job**
+- [x] **Step 3.2: Add the training task to the job**
 
   **Do:** in `resources/damage_classifier.yml`, append under `tasks:`:
 
@@ -377,19 +377,19 @@
                 epochs: "5"
   ```
 
-- [ ] **Step 3.3: Deploy and run the training task only**
+- [x] **Step 3.3: Deploy and run the training task only**
 
   **Do:** deploy, then `env -u PYTHONPATH databricks bundle run damage_classifier --only train_and_register --profile DEFAULT`.
 
   **Check:** `SUCCESS`, and the output shows `version: 1`, `alias: prod` and a `final_test_accuracy`. Expect about 5–10 minutes, mostly installing torch.
 
-- [ ] **Step 3.4: Look at the experiment and the model**
+- [x] **Step 3.4: Look at the experiment and the model**
 
   **Do, in the UI:**
   - **Experiments** → `e2e_damage_classifier` → the run `resnet18-finetune`. Look at its **parameters**, its **metrics charts** (train_loss falling, test_accuracy) and the **model** artifact.
   - **Catalog** → gold → **Models** → `claims_damage_level`: **version 1**, alias **prod**, linked to the run.
 
-- [ ] **Step 3.5: Check the files** with `git status --short`.
+- [x] **Step 3.5: Check the files** with `git status --short`.
 
 ---
 
@@ -571,6 +571,8 @@
 ---
 
 ### Task 7 (later): Option B, train on your laptop
+
+> **Environment note (2026-10-03):** the main `.venv`'s dev group already has `torch` 2.14.1+cu130 (it detects the RTX 5070) and `mlflow` 3.8.1. **`transformers` can't go into the main `.venv`:** the `setup-local` constraint `huggingface-hub~=1.2.4` (serverless environment 5) fits no transformers release (4.x needs hub <1.0, 5.x needs ≥1.3). Option B therefore needs a **separate local ML environment**, e.g. `ml/` with its own `pyproject.toml`: torch with CUDA for the 5070 (cu128 or newer), plus transformers, mlflow and pillow. VS Code points at it while working on ML. Until then, `from transformers import …` shows a yellow line in the editor, which is harmless.
 
 To be planned when Tasks 1–6 are done. The idea:
 
