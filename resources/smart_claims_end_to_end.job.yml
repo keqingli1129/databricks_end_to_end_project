@@ -1,0 +1,36 @@
+# End-to-end orchestration (see docs/transcript_4.txt): ingest from all three sources, then transform.
+# Hourly schedule, PAUSED: start it by hand with: databricks bundle run smart_claims_end_to_end
+
+resources:
+  jobs:
+    smart_claims_end_to_end:
+      name: smart_claims_end_to_end
+
+      schedule:
+        quartz_cron_expression: "0 0 * * * ?"  # every hour, on the hour
+        timezone_id: UTC
+        pause_status: PAUSED
+
+      tasks:
+        - task_key: ingest_telematics
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.telematics_ingestion.id}
+        - task_key: ingest_cdc
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.cdc_ingestion.id}
+        - task_key: ingest_object_storage
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.object_storage_ingestion.id}
+        - task_key: ingest_claim_images
+          run_job_task:
+            job_id: ${resources.jobs.ingest_claim_images.id}
+
+        - task_key: transform
+          depends_on:
+            - task_key: ingest_telematics
+            - task_key: ingest_cdc
+            - task_key: ingest_object_storage
+            - task_key: ingest_claim_images
+          run_if: ALL_SUCCESS
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.transformations.id}

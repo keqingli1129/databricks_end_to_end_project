@@ -384,7 +384,7 @@
 
 ### Task 5: Lineage in Unity Catalog
 
-- [ ] **Step 5.1: Look at table and column lineage**
+- [x] **Step 5.1: Look at table and column lineage**
 
   **Do:** Catalog → `e2e_dev` → `dev_keqingli1129_gold` → `customer_claim_policy_telematics` → **Lineage** tab → **See lineage graph**. Expand upstream until you reach bronze, and source for the claims. Then click a column, for example `avg_speed`, to see column lineage.
 
@@ -396,7 +396,7 @@
 
 **Files:** Create `resources/smart_claims_end_to_end.job.yml`.
 
-- [ ] **Step 6.1: Create the job**
+- [x] **Step 6.1: Create the job**
 
   **Do:** create `resources/smart_claims_end_to_end.job.yml`:
 
@@ -445,19 +445,19 @@
   - **`run_job_task`** reuses the existing claim-images job instead of copying it.
   - **The schedule** is the transcript's "every hour", kept **PAUSED** so it never runs and costs nothing on its own.
 
-- [ ] **Step 6.2: Validate and deploy**
+- [x] **Step 6.2: Validate and deploy**
 
   **Do:** validate, then deploy.
 
   **Check:** `Created jobs.smart_claims_end_to_end`. In the UI, Jobs & Pipelines → the job → **Tasks** shows 4 parallel boxes feeding `transform`, and the schedule shows **Paused**.
 
-- [ ] **Step 6.3: Run it end to end once**
+- [x] **Step 6.3: Run it end to end once**
 
   **Do:** `env -u PYTHONPATH databricks bundle run smart_claims_end_to_end --profile DEFAULT`
 
   **Check:** all 5 tasks end in **Succeeded**. With no new source data, each one finishes quickly, because there's nothing new to process. That's the incremental behaviour the transcript describes. Expect several minutes in total, mostly serverless start-up.
 
-- [ ] **Step 6.4: Check the files** with `git status --short`. The job YAML should be new.
+- [x] **Step 6.4: Check the files** with `git status --short`. The job YAML should be new.
 
 ---
 
