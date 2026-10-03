@@ -18,3 +18,8 @@ resources:
       libraries:
         - glob:
             include: ../src/transformations/transformations/**
+
+      environment:
+        dependencies:
+          # Pipeline-only library (see CLAUDE.md): used offline for distances in gold.aggregated_telematics.
+          - geopy==2.4.1

@@ -255,7 +255,7 @@
 
 **Files:** Create `src/transformations/transformations/silver_to_gold.py`.
 
-- [ ] **Step 3.1: Create `silver_to_gold.py`**
+- [x] **Step 3.1: Create `silver_to_gold.py`**
 
   **Do:** create the file:
 
@@ -329,7 +329,7 @@
   - **The two joins** are the transcript's pre-joined gold tables, kept up to date incrementally as materialized views.
   - **`from geopy.distance import geodesic` at the top** is what will fail next, because the library isn't installed yet.
 
-- [ ] **Step 3.2: Deploy and run, and see the failure**
+- [x] **Step 3.2: Deploy and run, and see the failure**
 
   **Do:** deploy, then run `transformations`.
 
@@ -341,7 +341,7 @@
 
 **Files:** Modify `resources/transformations.pipeline.yml` (Task 1).
 
-- [ ] **Step 4.1: Add the environment**
+- [x] **Step 4.1: Add the environment**
 
   **Do:** in `resources/transformations.pipeline.yml`, after the `libraries:` block, add:
 
@@ -355,13 +355,13 @@
 
   **Why:** this is the transcript's "go into the environment and add this dependency". In a bundle, it lives in the pipeline YAML. `geopy` is used only by this pipeline, so it goes here and not in `pyproject.toml`, as `CLAUDE.md` advises.
 
-- [ ] **Step 4.2: Deploy and run**
+- [x] **Step 4.2: Deploy and run**
 
   **Do:** deploy, then run `transformations`.
 
   **Check:** `Update … COMPLETED`. The graph shows the 7 silver tables feeding the 3 gold views.
 
-- [ ] **Step 4.3: Look at gold**
+- [x] **Step 4.3: Look at gold**
 
   **Do:** in the SQL editor:
 
@@ -378,7 +378,7 @@
   - **`customer_claim_policy`:** about **13,000** rows, minus any claims of the deleted customer `C007000`.
   - **The last query:** only the handful of claims (about 11) whose policies cover the part 1 cars.
 
-- [ ] **Step 4.4: Check the files** with `git status --short`. `silver_to_gold.py` should be new, and the pipeline YAML modified.
+- [x] **Step 4.4: Check the files** with `git status --short`. `silver_to_gold.py` should be new, and the pipeline YAML modified.
 
 ---
 

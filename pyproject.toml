@@ -19,6 +19,7 @@ dev = [
     "databricks-dlt",
     "databricks-connect~=18.0.0",
     "ipykernel",
+    "geopy==2.4.1",
 ]
 
 [project.scripts]
