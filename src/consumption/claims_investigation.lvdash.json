@@ -1,0 +1,442 @@
+{
+  "datasets": [
+    {
+      "name": "claims",
+      "displayName": "claims",
+      "queryLines": [
+        "SELECT claim_no, full_name, incident_date, incident_type, incident_severity, predicted_damage,\n",
+        "  claim_amount, coverage, coverage_limit, max_speed,\n",
+        "  size(failed_checks) AS failed_count, array_join(failed_checks, ', ') AS failed_check_list, claim_status,\n",
+        "  CASE WHEN claim_status = 'auto_approved' THEN 1 ELSE 0 END AS is_auto_approved,\n",
+        "  CASE WHEN claim_status = 'needs_review' THEN 1 ELSE 0 END AS is_needs_review\n",
+        "FROM claim_checks\n",
+        "WHERE incident_date BETWEEN :start_date AND :end_date\n",
+        "ORDER BY failed_count DESC, claim_amount DESC\n"
+      ],
+      "parameters": [
+        {
+          "keyword": "start_date",
+          "displayName": "start_date",
+          "dataType": "DATE",
+          "defaultSelection": {"values": {"dataType": "DATE", "values": [{"value": "2026-01-01T00:00:00.000"}]}}
+        },
+        {
+          "keyword": "end_date",
+          "displayName": "end_date",
+          "dataType": "DATE",
+          "defaultSelection": {"values": {"dataType": "DATE", "values": [{"value": "2026-12-31T00:00:00.000"}]}}
+        }
+      ]
+    },
+    {
+      "name": "check_failures",
+      "displayName": "check_failures",
+      "queryLines": [
+        "SELECT claim_no, incident_date, incident_type, failed_check\n",
+        "FROM claim_checks LATERAL VIEW explode(failed_checks) AS failed_check\n",
+        "WHERE incident_date BETWEEN :start_date AND :end_date\n"
+      ],
+      "parameters": [
+        {
+          "keyword": "start_date",
+          "displayName": "start_date",
+          "dataType": "DATE",
+          "defaultSelection": {"values": {"dataType": "DATE", "values": [{"value": "2026-01-01T00:00:00.000"}]}}
+        },
+        {
+          "keyword": "end_date",
+          "displayName": "end_date",
+          "dataType": "DATE",
+          "defaultSelection": {"values": {"dataType": "DATE", "values": [{"value": "2026-12-31T00:00:00.000"}]}}
+        }
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "overview",
+      "displayName": "Claims investigation",
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1",
+      "layout": [
+        {
+          "widget": {
+            "name": "title",
+            "multilineTextboxSpec": {"lines": ["# E2E Claims Investigation"]}
+          },
+          "position": {"x": 0, "y": 0, "width": 12, "height": 1}
+        },
+        {
+          "widget": {
+            "name": "filter-start-date",
+            "queries": [
+              {
+                "name": "p_claims_start_date",
+                "query": {
+                  "datasetName": "claims",
+                  "parameters": [{"name": "start_date", "keyword": "start_date"}],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "p_failures_start_date",
+                "query": {
+                  "datasetName": "check_failures",
+                  "parameters": [{"name": "start_date", "keyword": "start_date"}],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-date-picker",
+              "encodings": {
+                "fields": [
+                  {"parameterName": "start_date", "queryName": "p_claims_start_date"},
+                  {"parameterName": "start_date", "queryName": "p_failures_start_date"}
+                ]
+              },
+              "frame": {"showTitle": true, "title": "Incidents from"}
+            }
+          },
+          "position": {"x": 0, "y": 1, "width": 3, "height": 1}
+        },
+        {
+          "widget": {
+            "name": "filter-end-date",
+            "queries": [
+              {
+                "name": "p_claims_end_date",
+                "query": {
+                  "datasetName": "claims",
+                  "parameters": [{"name": "end_date", "keyword": "end_date"}],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "p_failures_end_date",
+                "query": {
+                  "datasetName": "check_failures",
+                  "parameters": [{"name": "end_date", "keyword": "end_date"}],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-date-picker",
+              "encodings": {
+                "fields": [
+                  {"parameterName": "end_date", "queryName": "p_claims_end_date"},
+                  {"parameterName": "end_date", "queryName": "p_failures_end_date"}
+                ]
+              },
+              "frame": {"showTitle": true, "title": "Incidents to"}
+            }
+          },
+          "position": {"x": 3, "y": 1, "width": 3, "height": 1}
+        },
+        {
+          "widget": {
+            "name": "subtitle",
+            "multilineTextboxSpec": {
+              "lines": [
+                "Automatic checks from `gold.claim_checks`: severity vs. photo model, amount vs. coverage limit, policy dates, speed. Click a bar to cross-filter."
+              ]
+            }
+          },
+          "position": {"x": 6, "y": 1, "width": 6, "height": 1}
+        },
+        {
+          "widget": {
+            "name": "kpi-total",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "claims",
+                  "fields": [
+                    {"name": "count(claim_no)", "expression": "COUNT(`claim_no`)"},
+                    {"name": "monthly(incident_date)", "expression": "DATE_TRUNC(\"MONTH\", `incident_date`)"}
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "count(claim_no)",
+                  "displayName": "Total claims",
+                  "format": {"type": "number", "abbreviation": "compact", "decimalPlaces": {"type": "max", "places": 1}}
+                },
+                "period": {"fieldName": "monthly(incident_date)"}
+              },
+              "frame": {"showTitle": true, "title": "Total claims"}
+            }
+          },
+          "position": {"x": 0, "y": 2, "width": 4, "height": 3}
+        },
+        {
+          "widget": {
+            "name": "kpi-auto-approved",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "claims",
+                  "fields": [
+                    {"name": "sum(is_auto_approved)", "expression": "SUM(`is_auto_approved`)"},
+                    {"name": "monthly(incident_date)", "expression": "DATE_TRUNC(\"MONTH\", `incident_date`)"}
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(is_auto_approved)",
+                  "displayName": "Auto-approved",
+                  "format": {"type": "number", "abbreviation": "compact", "decimalPlaces": {"type": "max", "places": 1}}
+                },
+                "period": {"fieldName": "monthly(incident_date)"}
+              },
+              "frame": {"showTitle": true, "title": "Auto-approved", "showDescription": true, "description": "No check failed"}
+            }
+          },
+          "position": {"x": 4, "y": 2, "width": 4, "height": 3}
+        },
+        {
+          "widget": {
+            "name": "kpi-needs-review",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "claims",
+                  "fields": [
+                    {"name": "sum(is_needs_review)", "expression": "SUM(`is_needs_review`)"},
+                    {"name": "monthly(incident_date)", "expression": "DATE_TRUNC(\"MONTH\", `incident_date`)"}
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(is_needs_review)",
+                  "displayName": "Needs review",
+                  "format": {"type": "number", "abbreviation": "compact", "decimalPlaces": {"type": "max", "places": 1}}
+                },
+                "period": {"fieldName": "monthly(incident_date)"}
+              },
+              "frame": {"showTitle": true, "title": "Needs review", "showDescription": true, "description": "At least one check failed"}
+            }
+          },
+          "position": {"x": 8, "y": 2, "width": 4, "height": 3}
+        },
+        {
+          "widget": {
+            "name": "bar-type-severity",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "claims",
+                  "fields": [
+                    {"name": "incident_type", "expression": "`incident_type`"},
+                    {"name": "incident_severity", "expression": "`incident_severity`"},
+                    {"name": "count(claim_no)", "expression": "COUNT(`claim_no`)"}
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {"fieldName": "incident_type", "scale": {"type": "categorical"}, "displayName": "Incident type"},
+                "y": {"fieldName": "count(claim_no)", "scale": {"type": "quantitative"}, "displayName": "Claims"},
+                "color": {
+                  "fieldName": "incident_severity",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "custom-order",
+                      "orderedValues": ["Trivial Damage", "Minor Damage", "Major Damage", "Total Loss"]
+                    }
+                  },
+                  "displayName": "Claimed severity"
+                }
+              },
+              "frame": {"showTitle": true, "title": "Claims by incident type and claimed severity"}
+            }
+          },
+          "position": {"x": 0, "y": 5, "width": 6, "height": 6}
+        },
+        {
+          "widget": {
+            "name": "bar-failed-checks",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "check_failures",
+                  "fields": [
+                    {"name": "failed_check", "expression": "`failed_check`"},
+                    {"name": "count(claim_no)", "expression": "COUNT(`claim_no`)"}
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {"fieldName": "count(claim_no)", "scale": {"type": "quantitative"}, "displayName": "Claims failing"},
+                "y": {
+                  "fieldName": "failed_check",
+                  "scale": {"type": "categorical", "sort": {"by": "value"}},
+                  "displayName": "Check"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Failures per check",
+                "showDescription": true,
+                "description": "A claim can fail several checks"
+              }
+            }
+          },
+          "position": {"x": 6, "y": 5, "width": 6, "height": 6}
+        },
+        {
+          "widget": {
+            "name": "bar-status-by-month",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "claims",
+                  "fields": [
+                    {"name": "monthly(incident_date)", "expression": "DATE_TRUNC(\"MONTH\", `incident_date`)"},
+                    {"name": "claim_status", "expression": "`claim_status`"},
+                    {"name": "count(claim_no)", "expression": "COUNT(`claim_no`)"}
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {"fieldName": "monthly(incident_date)", "scale": {"type": "temporal"}, "displayName": "Incident month"},
+                "y": {"fieldName": "count(claim_no)", "scale": {"type": "quantitative"}, "displayName": "Claims"},
+                "color": {
+                  "fieldName": "claim_status",
+                  "scale": {
+                    "type": "categorical",
+                    "mappings": [
+                      {"value": "auto_approved", "color": "#009E73"},
+                      {"value": "needs_review", "color": "#FF7E5C"}
+                    ]
+                  },
+                  "displayName": "Status"
+                }
+              },
+              "frame": {"showTitle": true, "title": "Claims per month by status"}
+            }
+          },
+          "position": {"x": 0, "y": 11, "width": 12, "height": 5}
+        },
+        {
+          "widget": {
+            "name": "table-review",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "claims",
+                  "fields": [
+                    {"name": "claim_no", "expression": "`claim_no`"},
+                    {"name": "full_name", "expression": "`full_name`"},
+                    {"name": "incident_date", "expression": "`incident_date`"},
+                    {"name": "incident_type", "expression": "`incident_type`"},
+                    {"name": "incident_severity", "expression": "`incident_severity`"},
+                    {"name": "predicted_damage", "expression": "`predicted_damage`"},
+                    {"name": "claim_amount", "expression": "`claim_amount`"},
+                    {"name": "coverage", "expression": "`coverage`"},
+                    {"name": "coverage_limit", "expression": "`coverage_limit`"},
+                    {"name": "max_speed", "expression": "`max_speed`"},
+                    {"name": "failed_count", "expression": "`failed_count`"},
+                    {"name": "failed_check_list", "expression": "`failed_check_list`"},
+                    {"name": "claim_status", "expression": "`claim_status`"}
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {"fieldName": "claim_no", "displayName": "Claim"},
+                  {"fieldName": "full_name", "displayName": "Customer"},
+                  {"fieldName": "incident_date", "displayName": "Incident date"},
+                  {"fieldName": "incident_type", "displayName": "Type"},
+                  {"fieldName": "incident_severity", "displayName": "Claimed severity"},
+                  {"fieldName": "predicted_damage", "displayName": "Model says"},
+                  {
+                    "fieldName": "claim_amount",
+                    "displayName": "Amount",
+                    "format": {"type": "number-currency", "currencyCode": "USD", "decimalPlaces": {"type": "exact", "places": 2}}
+                  },
+                  {"fieldName": "coverage", "displayName": "Coverage"},
+                  {
+                    "fieldName": "coverage_limit",
+                    "displayName": "Limit",
+                    "format": {"type": "number-currency", "currencyCode": "USD", "decimalPlaces": {"type": "exact", "places": 0}}
+                  },
+                  {"fieldName": "max_speed", "displayName": "Max speed (km/h)"},
+                  {"fieldName": "failed_count", "displayName": "# failed"},
+                  {"fieldName": "failed_check_list", "displayName": "Failed checks"},
+                  {"fieldName": "claim_status", "displayName": "Status"}
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Claims to investigate",
+                "showDescription": true,
+                "description": "Most failed checks first, then highest amount"
+              }
+            }
+          },
+          "position": {"x": 0, "y": 16, "width": 12, "height": 8}
+        }
+      ]
+    }
+  ],
+  "uiSettings": {
+    "theme": {
+      "canvasBackgroundColor": {"light": "#FCFCFC", "dark": "#1F272D"},
+      "widgetBackgroundColor": {"light": "#FFFFFF", "dark": "#11171C"},
+      "widgetBorderColor": {"light": "#FFFFFF", "dark": "#11171C"},
+      "fontColor": {"light": "#11171C", "dark": "#E8ECF0"},
+      "selectionColor": {"light": "#2272B4", "dark": "#8ACAFF"},
+      "visualizationColors": ["#0072B2", "#56B4E9", "#E69F00", "#D55E00", "#009E73", "#CC79A7", "#F0E442"],
+      "widgetHeaderAlignment": "LEFT"
+    }
+  }
+}

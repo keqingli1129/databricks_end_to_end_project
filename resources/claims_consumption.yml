@@ -1,0 +1,10 @@
+# Part 6a: consuming gold.claim_checks (see docs/part6a_consume_design.md).
+# Dashboard queries use bare table names; dataset_catalog/dataset_schema point them at this target's gold schema.
+resources:
+  dashboards:
+    claims_investigation_dashboard:
+      display_name: "E2E Claims Investigation"
+      file_path: ../src/consumption/claims_investigation.lvdash.json
+      warehouse_id: ${var.warehouse_id}
+      dataset_catalog: ${var.catalog}
+      dataset_schema: ${resources.schemas.gold.name}

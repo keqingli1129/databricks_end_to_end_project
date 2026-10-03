@@ -134,8 +134,8 @@
 
 ### Task 2 (you, UI): A practice dashboard
 
-- [ ] **Step 2.1: Create the dashboard.** Go to **Dashboards → Create dashboard**, and name it **"Practice – claims summary"**.
-- [ ] **Step 2.2: Add a dataset with date parameters.** On the **Data** tab, choose **Create from SQL** and paste:
+- [x] **Step 2.1: Create the dashboard.** Go to **Dashboards → Create dashboard**, and name it **"Practice – claims summary"**.
+- [x] **Step 2.2: Add a dataset with date parameters.** On the **Data** tab, choose **Create from SQL** and paste:
 
   ```sql
   SELECT incident_type, incident_severity, count(*) AS claims
@@ -145,8 +145,8 @@
   ```
 
   Set both parameters' type to **Date**, with `start_date` = 2026-01-01 and `end_date` = today. Run it, then rename the dataset to **claims_summary**.
-- [ ] **Step 2.3: Add a chart.** On the **Canvas**, add a visualization with dataset `claims_summary`, type **Bar**, X = `incident_type`, Y = `SUM(claims)`, Color = `incident_severity`. Add a **filter widget** for the date parameters.
-- [ ] **Step 2.4: Publish it,** then copy the **dashboard ID** from the URL: `…/dashboardsv3/<ID>/…`.
+- [x] **Step 2.3: Add a chart.** On the **Canvas**, add a visualization with dataset `claims_summary`, type **Bar**, X = `incident_type`, Y = `SUM(claims)`, Color = `incident_severity`. Add a **filter widget** for the date parameters.
+- [x] **Step 2.4: Publish it,** then copy the **dashboard ID** from the URL: `…/dashboardsv3/<ID>/…`.
 
 ---
 
@@ -156,12 +156,12 @@
 - Create: `resources/claims_consumption.yml`
 - Create: `src/consumption/claims_investigation.lvdash.json`
 
-- [ ] **Step 3.1: Export the practice dashboard** with `databricks bundle generate dashboard --existing-id <ID> …`, into the scratchpad, as a **format reference**.
-- [ ] **Step 3.2: Test the full dashboard's queries** with the CLI: status counts, claims by type × severity (with the date parameters), failures per check, and the review list.
-- [ ] **Step 3.3: Write `claims_investigation.lvdash.json`,** titled **"E2E Claims Investigation"**: the tested datasets; counters (total, auto-approved, needs review); bars (claims by incident type coloured by severity, failures per check); a table (claims needing review); and date filters.
-- [ ] **Step 3.4: Add the dashboard resource** to `resources/claims_consumption.yml`: key `claims_investigation_dashboard`, `display_name`, `file_path`, and `warehouse_id: ${var.warehouse_id}`.
-- [ ] **Step 3.5: Validate, deploy and open it.** Check that every widget renders and the date filter changes the numbers.
-- [ ] **Step 3.6: Check the files** with `git status --short`.
+- [x] **Step 3.1: Export the practice dashboard** with `databricks bundle generate dashboard --existing-id <ID> …`, into the scratchpad, as a **format reference**.
+- [x] **Step 3.2: Test the full dashboard's queries** with the CLI: status counts, claims by type × severity (with the date parameters), failures per check, and the review list.
+- [x] **Step 3.3: Write `claims_investigation.lvdash.json`,** titled **"E2E Claims Investigation"**: the tested datasets; counters (total, auto-approved, needs review); bars (claims by incident type coloured by severity, failures per check); a table (claims needing review); and date filters.
+- [x] **Step 3.4: Add the dashboard resource** to `resources/claims_consumption.yml`: key `claims_investigation_dashboard`, `display_name`, `file_path`, and `warehouse_id: ${var.warehouse_id}`.
+- [x] **Step 3.5: Validate, deploy and open it.** Check that every widget renders and the date filter changes the numbers.
+- [x] **Step 3.6: Check the files** with `git status --short`.
 
 ---
 
