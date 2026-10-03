@@ -167,26 +167,24 @@
 
 ### Task 4 (you, UI): A practice Genie space
 
-- [ ] **Step 4.1: Create the space.** Go to **Genie → New**, add the table `e2e_dev.dev_keqingli1129_gold.claim_checks`, pick the **Serverless Starter Warehouse**, and name it **"Practice – claims genie"**.
-- [ ] **Step 4.2: Ask** *"How many claims are there per claimed severity?"*, then open **Show code** to see the SQL Genie wrote. Ask a second question of your own.
-- [ ] **Step 4.3: Copy the space ID** from the URL: `…/genie/rooms/<ID>`.
+- [x] **Step 4.1: Create the space.** Go to **Genie → New**, add the table `e2e_dev.dev_keqingli1129_gold.claim_checks`, pick the **Serverless Starter Warehouse**, and name it **"Practice – claims genie"**.
+- [x] **Step 4.2: Ask** *"How many claims are there per claimed severity?"*, then open **Show code** to see the SQL Genie wrote. Ask a second question of your own.
+- [x] **Step 4.3: Copy the space ID** from the URL: `…/genie/rooms/<ID>`.
 
 ---
 
 ### Task 5: The full Genie space in the bundle
 
-**Files:**
-- Create: `src/consumption/claims_genie.geniespace.json`
-- Modify: `resources/claims_consumption.yml`
+**Files:** Modify `resources/claims_consumption.yml`. **No `.geniespace.json` file:** a Genie space has no `dataset_catalog`/`dataset_schema`, and a `file_path` file is copied as-is (no `${...}`), so the definition is inline `serialized_space` YAML. Its table names are `${var.catalog}.${resources.schemas.gold.name}.<table>` and follow the target (your choice, 2026-10-03).
 
-- [ ] **Step 5.1: Export the practice space** (its serialized definition) as a **format reference**.
-- [ ] **Step 5.2: Write `claims_genie.geniespace.json`:** the tables `gold.claim_checks` and `gold.customer_claim_policy_telematics`; instructions (severity order Trivial < Minor < Major < Total Loss; `needs_review` = at least one failed check; amounts in USD; speeds in km/h); and sample questions, for example *How many claims need review, by failed check?*, *What is the average claim amount per coverage?*, *Which claims had a speed over 150 km/h?* and *How often does the model agree with the customer's severity?*
-- [ ] **Step 5.3: Add the Genie resource:** key `claims_genie_space`, title **"E2E Claims Genie"**, a description, `warehouse_id: ${var.warehouse_id}` and `file_path`.
-- [ ] **Step 5.4: Validate and deploy, then try it yourself** in the UI with the sample questions and your own.
-- [ ] **Step 5.5: Check the files** with `git status --short`.
+- [x] **Step 5.1: Export the practice space** (its serialized definition) as a **format reference**.
+- [x] **Step 5.2: Write the Genie definition:** the tables `gold.claim_checks` and `gold.customer_claim_policy_telematics` (with entity matching on the categorical columns, and `email` excluded); one text instruction (which table to use; `needs_review` = at least one failed check; `explode(failed_checks)` per check; NULL check = not run; severity order Trivial < Minor < Major < Total Loss; the model's ok/minor/major mapping; USD and km/h); 4 sample questions (*How many claims need review, by failed check?*, *What is the average claim amount per coverage?*, *Which claims had a speed over 150 km/h?*, *How often does the model agree with the customer's severity?*); and 3 tested example SQLs.
+- [x] **Step 5.3: Add the Genie resource:** key `claims_genie_space`, title **"E2E Claims Genie"**, a description, `warehouse_id: ${var.warehouse_id}` and the inline `serialized_space`.
+- [x] **Step 5.4: Validate and deploy, then try it yourself** in the UI with the sample questions and your own.
+- [x] **Step 5.5: Check the files** with `git status --short`.
 
 ---
 
 ### Task 6: Update CLAUDE.md
 
-- [ ] **Step 6.1: Document part 6a:** the `claim_checks` rules and where they live, the dashboard and Genie resources and their JSON files, the "E2E" naming, and that the practice versions exist only in the UI.
+- [x] **Step 6.1: Document part 6a:** the `claim_checks` rules and where they live, the dashboard and Genie resources and their JSON files, the "E2E" naming, and that the practice versions exist only in the UI.

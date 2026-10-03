@@ -1,5 +1,7 @@
 # Part 6a: consuming gold.claim_checks (see docs/part6a_consume_design.md).
 # Dashboard queries use bare table names; dataset_catalog/dataset_schema point them at this target's gold schema.
+# The Genie space has no such fields, so its serialized_space is inline YAML: ${...} is resolved here, not in a file.
+# Genie rules: ids are 32 lowercase hex chars; id-keyed lists sorted by id, tables by identifier, columns by name.
 resources:
   dashboards:
     claims_investigation_dashboard:
@@ -8,3 +10,73 @@ resources:
       warehouse_id: ${var.warehouse_id}
       dataset_catalog: ${var.catalog}
       dataset_schema: ${resources.schemas.gold.name}
+
+  genie_spaces:
+    claims_genie_space:
+      title: "E2E Claims Genie"
+      description: "Ask questions about insurance claims, their automatic checks (photo model, coverage limit, policy dates, speed) and their status."
+      warehouse_id: ${var.warehouse_id}
+      serialized_space:
+        version: 2
+        config:
+          sample_questions:
+            - id: "10000000000000000000000000000001"
+              question: ["How many claims need review, by failed check?"]
+            - id: "10000000000000000000000000000002"
+              question: ["What is the average claim amount per coverage?"]
+            - id: "10000000000000000000000000000003"
+              question: ["Which claims had a speed over 150 km/h?"]
+            - id: "10000000000000000000000000000004"
+              question: ["How often does the model agree with the customer's severity?"]
+        data_sources:
+          tables:
+            - identifier: ${var.catalog}.${resources.schemas.gold.name}.claim_checks
+              column_configs:
+                - {column_name: claim_status, enable_format_assistance: true, enable_entity_matching: true, synonyms: ["status", "decision"]}
+                - {column_name: coverage, enable_format_assistance: true, enable_entity_matching: true}
+                - {column_name: expected_damage, enable_format_assistance: true, enable_entity_matching: true}
+                - {column_name: failed_checks, synonyms: ["failed rules", "reasons for review"]}
+                - {column_name: incident_severity, enable_format_assistance: true, enable_entity_matching: true, synonyms: ["claimed severity", "severity"]}
+                - {column_name: incident_type, enable_format_assistance: true, enable_entity_matching: true}
+                - {column_name: max_speed, synonyms: ["speed", "top speed"]}
+                - {column_name: predicted_damage, enable_format_assistance: true, enable_entity_matching: true, synonyms: ["model prediction", "predicted severity"]}
+            - identifier: ${var.catalog}.${resources.schemas.gold.name}.customer_claim_policy_telematics
+              column_configs:
+                - {column_name: coverage, enable_format_assistance: true, enable_entity_matching: true}
+                - {column_name: email, exclude: true}
+                - {column_name: incident_severity, enable_format_assistance: true, enable_entity_matching: true}
+                - {column_name: incident_type, enable_format_assistance: true, enable_entity_matching: true}
+                - {column_name: make, enable_format_assistance: true, enable_entity_matching: true}
+                - {column_name: model, enable_format_assistance: true, enable_entity_matching: true}
+        instructions:
+          text_instructions:
+            - id: "20000000000000000000000000000001"
+              content:
+                - "Use claim_checks for anything about checks, review status or the photo model; it has one row per claim. "
+                - "Use customer_claim_policy_telematics only for car (make, model, model_year), policy (premium, deductible), customer (age, zip_code) or telematics details (avg_speed, distance_from_city_center_km); join the two on claim_no. "
+                - "claim_status is 'auto_approved' when no check failed, and 'needs_review' when at least one check failed. "
+                - "failed_checks is an array of check names (severity_match, amount_within_limit, policy_valid, speed_ok); for questions per check, use LATERAL VIEW explode(failed_checks). "
+                - "A NULL check means the check could not run (for example speed_ok is NULL when the car has no telematics); it is not a failure. "
+                - "Severity order, lowest to highest: Trivial Damage < Minor Damage < Major Damage < Total Loss. Sort severities in this order, not alphabetically. "
+                - "The photo model predicts ok, minor or major; expected_damage maps the claimed severity to those labels (Trivial -> ok, Minor -> minor, Major and Total Loss -> major). "
+                - "Amounts (claim_amount, coverage_limit, premium) are in USD. Speeds are in km/h; the speed limit for the speed_ok check is 150 km/h. "
+          example_question_sqls:
+            - id: "30000000000000000000000000000001"
+              question: ["How many claims need review, by failed check?"]
+              sql:
+                - "SELECT failed_check, COUNT(*) AS claims "
+                - "FROM ${var.catalog}.${resources.schemas.gold.name}.claim_checks LATERAL VIEW explode(failed_checks) AS failed_check "
+                - "GROUP BY failed_check ORDER BY claims DESC"
+            - id: "30000000000000000000000000000002"
+              question: ["How often does the model agree with the customer's severity?"]
+              sql:
+                - "SELECT COUNT_IF(severity_match) AS agree, COUNT_IF(NOT severity_match) AS disagree, "
+                - "COUNT_IF(severity_match IS NULL) AS no_prediction, "
+                - "ROUND(AVG(CASE WHEN severity_match THEN 1.0 WHEN NOT severity_match THEN 0.0 END), 3) AS agreement_rate "
+                - "FROM ${var.catalog}.${resources.schemas.gold.name}.claim_checks"
+            - id: "30000000000000000000000000000003"
+              question: ["Which claims had a speed over 150 km/h?"]
+              sql:
+                - "SELECT claim_no, full_name, chassis_number, max_speed, claim_status "
+                - "FROM ${var.catalog}.${resources.schemas.gold.name}.claim_checks "
+                - "WHERE max_speed > 150 ORDER BY max_speed DESC"
