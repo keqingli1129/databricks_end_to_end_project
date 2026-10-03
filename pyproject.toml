@@ -31,6 +31,8 @@ build-backend = "hatchling.build"
 
 [tool.ruff]
 line-length = 120
+# Databricks notebooks and pipelines provide these as globals (no import needed).
+builtins = ["spark", "dbutils"]
 
 [tool.databricks.environment]
 environment_version = "5"

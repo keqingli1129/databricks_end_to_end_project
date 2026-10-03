@@ -1,0 +1,20 @@
+# Transformations (see docs/transcript_4.txt): bronze -> silver (cleaning + data quality) -> gold (aggregates, joins).
+
+resources:
+  pipelines:
+    transformations:
+      # Not just "transformations": the smart_claims_dev bundle already has a pipeline with that name.
+      name: e2e_transformations
+      catalog: ${var.catalog}
+      schema: ${resources.schemas.silver.name}
+      serverless: true
+      # root_path is put on sys.path by the pipeline (see part 1, step 9.4).
+      root_path: "../src"
+
+      configuration:
+        transformations.bronze_schema: ${var.catalog}.${resources.schemas.bronze.name}
+        transformations.gold_schema: ${var.catalog}.${resources.schemas.gold.name}
+
+      libraries:
+        - glob:
+            include: ../src/transformations/transformations/**
