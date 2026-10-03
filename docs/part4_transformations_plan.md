@@ -465,7 +465,7 @@
 
 **Files:** Modify `CLAUDE.md`.
 
-- [ ] **Step 7.1: Document part 4**
+- [x] **Step 7.1: Document part 4**
 
   **Do:**
   1. Add to the Commands block:
