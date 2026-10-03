@@ -46,3 +46,14 @@ resources:
               training_table: ${var.catalog}.${resources.schemas.silver.name}.training_images_resized
               claim_images_table: ${var.catalog}.${resources.schemas.silver.name}.claim_images
               gold_schema: ${var.catalog}.${resources.schemas.gold.name}
+
+  model_serving_endpoints:
+    # Key differs from the registered model's key: resource keys must be unique across all types.
+    claims_damage_level_endpoint:
+      name: e2e-claims-damage-level
+      config:
+        served_entities:
+          - entity_name: ${var.catalog}.${resources.schemas.gold.name}.${resources.registered_models.claims_damage_level.name}
+            entity_version: "2"
+            workload_size: Small
+            scale_to_zero_enabled: true

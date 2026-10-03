@@ -140,8 +140,8 @@ with mlflow.start_run(run_name="resnet18-finetune") as run:
         python_model=DamageClassifier(),
         artifacts={"model_dir": model_dir},
         signature=infer_signature(sample, pd.Series(["ok"])),
+        # Package names only (plain PyPI) - the most portable form for Model Serving's container build.
         pip_requirements=[
-            "--extra-index-url https://download.pytorch.org/whl/cpu",
             "torch==2.5.1",
             "transformers==4.46.3",
             "pillow",

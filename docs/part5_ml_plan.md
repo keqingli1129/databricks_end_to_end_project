@@ -164,7 +164,7 @@
 
 *Not needed: on 2026-10-03, step 1.3 reported huggingface.co and download.pytorch.org both **reachable** from serverless.*
 
-- [ ] **Step 2.1: Download ResNet-18 on your laptop and upload it**
+- [x] ~~**Step 2.1: Download ResNet-18 on your laptop and upload it**~~ *Not needed (Hugging Face is reachable).*
 
   **Do:**
 
@@ -330,7 +330,6 @@
           artifacts={"model_dir": model_dir},
           signature=infer_signature(sample, pd.Series(["ok"])),
           pip_requirements=[
-              "--extra-index-url https://download.pytorch.org/whl/cpu",
               "torch==2.5.1",
               "transformers==4.46.3",
               "pillow",
@@ -506,7 +505,7 @@
 
 **Files:** Modify `resources/damage_classifier.yml` (add an endpoint).
 
-- [ ] **Step 5.1: Add the endpoint resource**
+- [x] **Step 5.1: Add the endpoint resource**
 
   **Do:** append to `resources/damage_classifier.yml`:
 
@@ -528,11 +527,13 @@
   - **Scale-to-zero:** it costs nothing while idle.
   - **A fixed version:** endpoints need a version number, not an alias.
 
-- [ ] **Step 5.2: Deploy and wait until the endpoint is ready**
+- [x] **Step 5.2: Deploy and wait until the endpoint is ready**
+
+  > **What happened on 2026-10-03:** the first deploy failed after about 10 seconds with `Container image creation failed: internal error`, and there was no build log. I first suspected the `--extra-index-url` line in the model's requirements, so I retrained to **version 2** with package names only (step 3.1's code now shows that). But a redeploy of **version 1** with the old requirements then **succeeded**, so the first failure was a temporary platform error, fixed by retrying. The endpoint now serves **version 2** (`entity_version: "2"`). Its deploy waited about 18 minutes while the container built. The dev endpoint name is **`dev_keqingli1129_e2e-claims-damage-level`**. Build failures like this don't show in the build-logs API; read the endpoint's **events** with `databricks api get /api/2.0/serving-endpoints/<name>/events` instead.
 
   **Do:** deploy. Then poll with `databricks serving-endpoints get e2e-claims-damage-level --profile DEFAULT` (in dev, the name may carry a `dev-…` prefix; `bundle summary` shows it) until `state.ready` is `READY`. The first container build takes about 10–20 minutes.
 
-- [ ] **Step 5.3: Send it one photo**
+- [x] **Step 5.3: Send it one photo**
 
   **Do:** base64-encode one claim photo and query the endpoint:
 
@@ -544,13 +545,13 @@
 
   **Check:** the answer is `{"predictions": ["ok" | "minor" | "major"]}`. That's real-time inference, the input part 6's app will use. If the first call times out while the endpoint wakes from zero, repeat it.
 
-- [ ] **Step 5.4: Check the files** with `git status --short`.
+- [x] **Step 5.4: Check the files** with `git status --short`.
 
 ---
 
 ### Task 6: Update CLAUDE.md
 
-- [ ] **Step 6.1: Document part 5**
+- [x] **Step 6.1: Document part 5**
 
   **Do:**
   1. Add to the Commands block:
