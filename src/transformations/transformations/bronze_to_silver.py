@@ -20,3 +20,19 @@ SEVERITY_LEVEL = (
 @dp.expect_all_or_drop({"valid_claim_no": "claim_no IS NOT NULL", "valid_claim_amount": "claim_amount >= 0"})
 def claim():
     return spark.read.table(f"{BRONZE}.claim").withColumn("severity_level", SEVERITY_LEVEL)
+
+
+@dp.materialized_view(name="policy", comment="Cleaned policies; premium is never negative.", table_properties=SILVER_PROPERTIES)
+@dp.expect_all_or_drop({"valid_policy_no": "policy_no IS NOT NULL", "valid_policy_period": "end_date > start_date"})
+def policy():
+    return spark.read.table(f"{BRONZE}.policy").withColumn("premium", F.abs("premium"))
+
+
+@dp.materialized_view(name="customer", comment="Cleaned customers with full name and age.", table_properties=SILVER_PROPERTIES)
+@dp.expect_all_or_drop({"valid_customer_id": "customer_id IS NOT NULL", "valid_email": "email LIKE '%@%'"})
+def customer():
+    return (
+        spark.read.table(f"{BRONZE}.customer")
+        .withColumn("full_name", F.concat_ws(" ", "first_name", "last_name"))
+        .withColumn("age", F.floor(F.months_between(F.current_date(), "date_of_birth") / 12).cast("int"))
+    )

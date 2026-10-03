@@ -130,7 +130,7 @@
 
 **Files:** Modify `src/transformations/transformations/bronze_to_silver.py` (Task 1).
 
-- [ ] **Step 2.1: Add policy and customer (materialized views)**
+- [x] **Step 2.1: Add policy and customer (materialized views)**
 
   **Do:** append to `bronze_to_silver.py`:
 
