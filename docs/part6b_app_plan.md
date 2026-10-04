@@ -243,11 +243,11 @@
 
 ### Task 7: Wrap-up
 
-- [ ] **Step 7.1: Update CLAUDE.md** (part 6b):
+- [x] **Step 7.1: Update CLAUDE.md** (part 6b):
   - the shared Lakebase project and **the warning never to destroy `smart_claims_dev`**
   - `claim_rules.py` as the single copy of the rules
   - the resources and the sync mode (and the fallback, if it was used)
   - `app_claims` and the `APP` claim numbers
   - how to start the app, and the GRANT step
-- [ ] **Step 7.2: Pause the cost (you decide):** keep the app and the continuous sync running, or switch both synced tables to `SNAPSHOT` (or stop the app) until you need them.
-- [ ] **Step 7.3: Check the files** with `git status --short`.
+- [x] **Step 7.2: Pause the cost (you decide):** keep the app and the continuous sync running, or switch both synced tables to `SNAPSHOT` (or stop the app) until you need them.
+- [x] **Step 7.3: Check the files** with `git status --short`.
