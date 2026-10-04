@@ -36,6 +36,11 @@ INCIDENT_TYPES = ["COLLISION", "THEFT", "WEATHER", "VANDALISM", "GLASS"]
 SEVERITIES = list(claim_rules.EXPECTED_DAMAGE)  # Trivial Damage < Minor Damage < Major Damage < Total Loss
 COLLISION_TYPES = ["Single vehicle", "Multi-vehicle", "Parked car", "Not a collision"]
 CHECK_ICONS = {True: "✅", False: "❌", None: "➖"}
+MAX_ROWS = 500  # Streamlit gets slow rendering all ~13,000 claims
+LIST_COLUMNS = [
+    "claim_no", "source", "claim_status", "failed_checks", "full_name", "incident_date", "incident_type",
+    "incident_severity", "predicted_damage", "claim_amount", "coverage", "coverage_limit", "submitted_at",
+]  # fmt: skip
 LOCAL_TZ = ZoneInfo("America/Chicago")  # the claims are in Houston; the app server runs on UTC
 
 
@@ -85,60 +90,106 @@ def customer_mode(pool) -> None:
     except Exception as error:  # noqa: BLE001 - tell the customer, save nothing
         st.error(f"The photo couldn't be stored, so the claim wasn't submitted: {error}")
         return
-    db.insert_app_claim(
-        pool,
-        {
-            **{key: policy[key] for key in ["policy_no", "customer_id", "full_name", "coverage", "coverage_limit"]},
-            **{key: policy[key] for key in ["start_date", "end_date", "chassis_number", "max_speed"]},
-            **{key: result[key] for key in [*claim_rules.CHECKS, "expected_damage", "failed_checks", "claim_status"]},
-            "claim_no": claim_no,
-            "incident_date": incident_date,
-            "incident_type": incident_type,
-            "incident_severity": incident_severity,
-            "claim_amount": claim_amount,
-            "image_name": image_name,
-            "predicted_damage": damage,
-            "location": location or None,
-            "collision_type": collision_type,
-            "vehicles_involved": vehicles_involved,
-            "notes": notes or None,
-        },
-    )
-    show_result(claim_no, policy, result, incident_date, incident_severity, claim_amount, damage)
-
-
-def show_result(claim_no, policy, result, incident_date, incident_severity, claim_amount, damage) -> None:
-    if result["claim_status"] == "auto_approved":
+    claim = {
+        **{key: policy[key] for key in ["policy_no", "customer_id", "full_name", "coverage", "coverage_limit"]},
+        **{key: policy[key] for key in ["start_date", "end_date", "chassis_number", "max_speed"]},
+        **{key: result[key] for key in [*claim_rules.CHECKS, "expected_damage", "failed_checks", "claim_status"]},
+        "claim_no": claim_no,
+        "incident_date": incident_date,
+        "incident_type": incident_type,
+        "incident_severity": incident_severity,
+        "claim_amount": claim_amount,
+        "image_name": image_name,
+        "predicted_damage": damage,
+        "location": location or None,
+        "collision_type": collision_type,
+        "vehicles_involved": vehicles_involved,
+        "notes": notes or None,
+    }
+    db.insert_app_claim(pool, claim)
+    if claim["claim_status"] == "auto_approved":
         st.success(f"Approved: claim {claim_no}. Your refund arrives within 3 to 5 business days.")
     else:
-        st.warning(f"Claim {claim_no} needs a review by our team: {', '.join(result['failed_checks'])}.")
-    speed = policy["max_speed"]
+        st.warning(f"Claim {claim_no} needs a review by our team: {', '.join(claim['failed_checks'])}.")
+    show_checks(claim)
+
+
+def show_checks(claim: dict) -> None:
+    """Each check with its icon and the numbers behind it; claim is a row of claim_checks or app_claims."""
+    speed, damage = claim["max_speed"], claim["predicted_damage"]
     explanations = {
-        "severity_match": f"Your assessment {incident_severity} (= {result['expected_damage']}) "
+        "severity_match": f"claimed {claim['incident_severity']} (= {claim['expected_damage']}) "
         + (f"vs the photo: {damage}" if damage else "- the photo couldn't be checked"),
         # \$: Streamlit markdown reads text between two $ signs as a math formula.
-        "amount_within_limit": f"\\${claim_amount:,.2f} vs the {policy['coverage']} limit of "
-        f"\\${policy['coverage_limit']:,}",
-        "policy_valid": f"{incident_date} vs the policy period {policy['start_date']} to {policy['end_date']}",
+        "amount_within_limit": f"\\${claim['claim_amount']:,.2f} vs the {claim['coverage']} limit of "
+        f"\\${claim['coverage_limit']:,}",
+        "policy_valid": f"{claim['incident_date']} vs the policy period {claim['start_date']} to {claim['end_date']}",
         "speed_ok": f"top speed {speed:.1f} km/h vs the {claim_rules.MAX_SPEED_KMH} km/h limit"
         if speed is not None
         else "no telematics for this car",
     }
     for check in claim_rules.CHECKS:
-        st.write(f"{CHECK_ICONS[result[check]]} **{check}**: {explanations[check]}")
+        st.write(f"{CHECK_ICONS[claim[check]]} **{check}**: {explanations[check]}")
 
 
 def admin_mode(pool) -> None:
-    try:
-        counts = db.table_counts(pool)
-    except Exception as error:  # noqa: BLE001 - show any connection or permission problem on the page
-        st.error(f"Can't read the claims database: {error}")
-        st.code("\n".join(db.diagnose()))
+    overview, analysis = st.tabs(["Overview", "Analysis"])
+    with overview:
+        admin_overview(pool)
+    with analysis:
+        admin_analysis(pool)
+
+
+def admin_overview(pool) -> None:
+    summary = db.claim_summary(pool)
+    total, approved, review = st.columns(3)
+    total.metric("Total claims", f"{summary['total']:,}", help=f"{summary['from_app']:,} submitted in the app")
+    approved.metric("Auto-approved", f"{summary['auto_approved']:,}")
+    review.metric("Needs review", f"{summary['needs_review']:,}")
+    for column, severity in zip(st.columns(len(SEVERITIES)), SEVERITIES, strict=True):
+        column.metric(severity, f"{summary['per_severity'].get(severity, 0):,}")
+
+    severity_filter, status_filter, source_filter = st.columns(3)
+    severity = severity_filter.selectbox("Claimed severity", ["All", *SEVERITIES])
+    status = status_filter.selectbox("Status", ["All", "needs_review", "auto_approved"])
+    source = source_filter.selectbox("Source", ["All", "app", "pipeline"])
+    rows = db.list_claims(
+        pool, *[None if choice == "All" else choice for choice in (severity, status, source)], limit=MAX_ROWS
+    )
+    st.caption(f"{len(rows):,} claims" + (f" (the first {MAX_ROWS})" if len(rows) == MAX_ROWS else ""))
+    st.dataframe(
+        [{**row, "failed_checks": ", ".join(row["failed_checks"])} for row in rows],
+        hide_index=True,
+        width="stretch",
+        column_order=LIST_COLUMNS,
+        column_config={
+            "claim_amount": st.column_config.NumberColumn("claim_amount", format="dollar"),
+            "coverage_limit": st.column_config.NumberColumn("coverage_limit", format="dollar"),
+        },
+    )
+
+
+def admin_analysis(pool) -> None:
+    claim_no = st.text_input("Claim number", value=db.latest_app_claim_no(pool) or "CLM00012832").strip().upper()
+    claim = db.get_claim(pool, claim_no)
+    if claim is None:
+        st.warning(f"No claim {claim_no}.")
         return
-    left, middle, right = st.columns(3)
-    left.metric("Claims (synced)", f"{counts['claim_checks']:,}")
-    middle.metric("Policies (synced)", f"{counts['policy_lookup']:,}")
-    right.metric("Claims submitted in the app", f"{counts['app_claims']:,}")
+    photo_column, details = st.columns([1, 2])
+    photo = services.read_photo(claim["image_name"]) if claim["image_name"] else None
+    if photo is None:
+        photo_column.info("No photo found for this claim.")
+    else:
+        photo_column.image(photo, caption=claim["image_name"], width="stretch")
+    with details:
+        approved = claim["claim_status"] == "auto_approved"
+        (st.success if approved else st.warning)(f"{claim_no}: {claim['claim_status']} ({claim['source']} claim)")
+        st.write(
+            f"**{claim['full_name']}** ({claim['customer_id']}), policy {claim['policy_no']}, "
+            f"{claim['coverage']}, car {claim['chassis_number']}"
+        )
+        st.write(f"{claim['incident_type']} on {claim['incident_date']}")
+        show_checks(claim)
 
 
 mode = st.sidebar.radio("Mode", ["Customer", "Admin"])

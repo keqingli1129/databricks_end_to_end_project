@@ -220,24 +220,24 @@
 
 **Files:** Modify `src/claims_app/app.py`, `src/claims_app/db.py`
 
-- [ ] **Step 6.1: Overview:**
+- [x] **Step 6.1: Overview:**
   - counters (total, auto-approved, needs review)
   - counts per claimed severity (in the order Trivial → Total Loss)
   - filters for severity, status and source
   - the list from `claim_checks UNION ALL app_claims`, app claims first, `LIMIT 500`, with filters in SQL
-- [ ] **Step 6.2: Analysis:**
+- [x] **Step 6.2: Analysis:**
   - a claim search (prefilled with a pipeline claim)
   - the photo, from `images/`, `archive/` or `app_uploads/`
   - the details and each check with its numbers
   - the status
-- [ ] **Step 6.3: Deploy, then try it (you, UI).**
+- [x] **Step 6.3: Deploy, then try it (you, UI).**
 
   **Check:**
   - The counters equal 12,999 plus your app claims.
   - The severity filter changes the list.
   - Your `APP…` claims from Task 5 appear first, and open in Analysis with their photo.
   - A pipeline claim's photo shows.
-- [ ] **Step 6.4: Check the files** with `git status --short`.
+- [x] **Step 6.4: Check the files** with `git status --short`.
 
 ---
 

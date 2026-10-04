@@ -163,3 +163,76 @@ def insert_app_claim(pool: ConnectionPool, claim: dict) -> None:
     )
     with pool.connection() as conn:
         conn.execute(query, values)
+
+
+# --- Admin mode: pipeline claims (synced claim_checks) and app claims together. ---
+
+# The columns both tables share, with a source column; pipeline claims have no submitted_at.
+_ALL_CLAIMS = """
+    SELECT claim_no, policy_no, full_name, incident_date, incident_type, incident_severity, claim_amount, coverage,
+           coverage_limit, predicted_damage, failed_checks, claim_status, 'pipeline' AS source,
+           NULL::timestamptz AS submitted_at
+    FROM {synced}
+    UNION ALL
+    SELECT claim_no, policy_no, full_name, incident_date, incident_type, incident_severity, claim_amount, coverage,
+           coverage_limit, predicted_damage, failed_checks, claim_status, 'app' AS source, submitted_at
+    FROM app.app_claims
+"""
+
+
+def _all_claims() -> sql.Composed:
+    return sql.SQL(_ALL_CLAIMS).format(synced=sql.Identifier(SYNCED_SCHEMA, "claim_checks_pg"))
+
+
+def claim_summary(pool: ConnectionPool) -> dict:
+    """Counts over all claims: total, per status, from the app, and per claimed severity."""
+    totals = sql.SQL(
+        "SELECT count(*) AS total, "
+        "count(*) FILTER (WHERE claim_status = 'auto_approved') AS auto_approved, "
+        "count(*) FILTER (WHERE claim_status = 'needs_review') AS needs_review, "
+        "count(*) FILTER (WHERE source = 'app') AS from_app "
+        "FROM ({all_claims}) a"
+    ).format(all_claims=_all_claims())
+    per_severity = sql.SQL("SELECT incident_severity, count(*) AS n FROM ({all_claims}) a GROUP BY 1").format(
+        all_claims=_all_claims()
+    )
+    with pool.connection() as conn:
+        summary = conn.execute(totals).fetchone()
+        summary["per_severity"] = {row["incident_severity"]: row["n"] for row in conn.execute(per_severity)}
+    return summary
+
+
+def list_claims(pool: ConnectionPool, severity: str | None, status: str | None, source: str | None, limit: int = 500):
+    """Filtered claims, app claims first (newest first), then pipeline claims by incident date."""
+    conditions = [
+        sql.SQL("{column} = {value}").format(column=sql.Identifier(column), value=sql.Literal(value))
+        for column, value in [("incident_severity", severity), ("claim_status", status), ("source", source)]
+        if value is not None
+    ]
+    query = sql.SQL(
+        "SELECT * FROM ({all_claims}) a {where} "
+        "ORDER BY source = 'app' DESC, submitted_at DESC NULLS LAST, incident_date DESC, claim_no LIMIT {limit}"
+    ).format(
+        all_claims=_all_claims(),
+        where=sql.SQL("WHERE ") + sql.SQL(" AND ").join(conditions) if conditions else sql.SQL(""),
+        limit=sql.Literal(limit),
+    )
+    with pool.connection() as conn:
+        return conn.execute(query).fetchall()
+
+
+def get_claim(pool: ConnectionPool, claim_no: str) -> dict | None:
+    """One claim with every column, from the app's claims or the synced pipeline claims; None if it isn't found."""
+    synced = sql.Identifier(SYNCED_SCHEMA, "claim_checks_pg")
+    with pool.connection() as conn:
+        for table, source in [(sql.SQL("app.app_claims"), "app"), (synced, "pipeline")]:
+            claim = conn.execute(sql.SQL("SELECT * FROM {} WHERE claim_no = %s").format(table), [claim_no]).fetchone()
+            if claim is not None:
+                return {**claim, "source": source}
+    return None
+
+
+def latest_app_claim_no(pool: ConnectionPool) -> str | None:
+    with pool.connection() as conn:
+        row = conn.execute("SELECT max(claim_no) AS claim_no FROM app.app_claims").fetchone()
+    return row["claim_no"]
