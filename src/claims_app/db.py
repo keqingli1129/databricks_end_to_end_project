@@ -94,6 +94,22 @@ CREATE TABLE IF NOT EXISTS app.app_claims (
 """
 
 
+def diagnose() -> list[str]:
+    """Why can't the pool connect? The pool only reports a timeout, so try one direct connection and report it."""
+    names = ["PGHOST", "PGPORT", "PGDATABASE", "PGUSER", "PGSSLMODE", "LAKEBASE_ENDPOINT", "SYNCED_SCHEMA"]
+    lines = [f"{name}: {'set' if os.environ.get(name) else 'MISSING'}" for name in names]
+    try:
+        _password()
+        lines.append("OAuth token for Postgres: OK")
+        with _TokenConnection.connect(
+            host=os.environ["PGHOST"], dbname=os.environ["PGDATABASE"], user=os.environ["PGUSER"], sslmode="require"
+        ) as conn:
+            lines.append(f"Direct connection: OK as {conn.execute('SELECT current_user').fetchone()[0]}")
+    except Exception as error:  # noqa: BLE001 - the point is to show any error
+        lines.append(f"Direct connection failed: {type(error).__name__}: {error}")
+    return lines
+
+
 def init_app_tables(pool: ConnectionPool) -> None:
     with pool.connection() as conn:
         conn.execute(APP_DDL)

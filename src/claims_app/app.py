@@ -9,7 +9,11 @@ st.set_page_config(page_title="E2E Claims", page_icon="🚗", layout="wide")
 @st.cache_resource
 def get_pool():
     pool = db.make_pool()
-    db.init_app_tables(pool)
+    try:
+        db.init_app_tables(pool)
+    except Exception:
+        pool.close()  # failures aren't cached, so an open pool would keep retrying next to the next one
+        raise
     return pool
 
 
@@ -21,6 +25,7 @@ try:
     counts = db.table_counts(get_pool())
 except Exception as error:  # noqa: BLE001 - show any connection or permission problem on the page
     st.error(f"Can't read the claims database: {error}")
+    st.code("\n".join(db.diagnose()))
     st.stop()
 
 left, middle, right = st.columns(3)
