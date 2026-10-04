@@ -148,11 +148,13 @@
 - Create: `src/claims_app/app.yaml`, `requirements.txt`, `app.py`, `db.py`
 - Modify: `resources/claims_app.yml`
 
-- [ ] **Step 4.1: Load `databricks-apps-python`**, and write:
+- [x] **Step 4.1: Load `databricks-apps-python`**, and write:
   - **`app.yaml`:** `command: ["streamlit", "run", "app.py"]`, plus `env` entries from the app resources: the Postgres host and database, the endpoint name, the volume path.
   - **`requirements.txt`:** `streamlit`, `psycopg[binary]`, `databricks-sdk`, `pandas`, with versions pinned.
   - **`db.py`:** connections with an OAuth token from `WorkspaceClient()` for every new connection. Startup DDL: schema `app`, sequence `app.claim_no_seq`, and table `app.app_claims` (the columns in the design). Query helpers.
   - **`app.py`:** the sidebar mode switch, and for now a page that shows the number of rows in both synced tables.
+
+  **Done differently (2026-10-03): no `app.yaml`.** The bundle's app resource has a `config` block (`command`, and `env` with `value` or `value_from`). Unlike `app.yaml`, it can use `${…}`, which the per-target Postgres schema name (`SYNCED_SCHEMA`) needs. So the command and env go in `claims_app.yml` (step 4.2). `requirements.txt` uses version ranges: `psycopg[binary]`, `psycopg-pool`, and `databricks-sdk>=0.81` for `w.postgres`; Streamlit comes with the runtime.
 - [ ] **Step 4.2: Add the app resource:** key `claims_app`, a name valid for apps, `source_code_path: ../src/claims_app`, and these resources:
   - `postgres` (`branch`, `database`, `CAN_CONNECT_AND_CREATE`)
   - `serving_endpoint` (`${resources.model_serving_endpoints.claims_damage_level_endpoint.name}`, `CAN_QUERY`)

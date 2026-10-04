@@ -23,6 +23,10 @@ dev = [
     "pillow>=11.1.0",
     "torch>=2.14.1",
     "mlflow~=3.8.1",
+    # The claims app's libraries (src/claims_app/requirements.txt), so the editor resolves its imports.
+    "streamlit",
+    "psycopg[binary]>=3.2,<4",
+    "psycopg-pool>=3.2,<4",
 ]
 
 [project.scripts]
