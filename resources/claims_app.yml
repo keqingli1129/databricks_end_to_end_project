@@ -33,3 +33,15 @@ resources:
         storage_schema: ${resources.schemas.gold.name}
         # Automatic (read-time) change data feed from a materialized view needs the PREVIEW channel.
         pipeline_channel: PREVIEW
+
+    policy_lookup_synced:
+      # The app's policy lookup when a customer submits a claim; <gold schema>.policy_lookup_pg in Postgres.
+      synced_table_id: ${var.catalog}.${resources.schemas.gold.name}.policy_lookup_pg
+      source_table_full_name: ${var.catalog}.${resources.schemas.gold.name}.policy_lookup
+      primary_key_columns: [policy_no]
+      scheduling_policy: CONTINUOUS
+      branch: ${var.lakebase_branch}
+      postgres_database: ${resources.postgres_databases.e2e_claims_database.postgres_database}
+      create_database_objects_if_missing: true
+      # Share claim_checks_synced's continuous pipeline (bin-packing) instead of running a second one.
+      existing_pipeline_id: ${resources.postgres_synced_tables.claim_checks_synced.status.pipeline_id}

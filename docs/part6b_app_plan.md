@@ -83,7 +83,7 @@
 - Modify: `src/transformations/transformations/silver_to_gold.py` (parts 4 and 6a)
 - Modify: `resources/claims_app.yml`
 
-- [ ] **Step 2.1: Create `claim_rules.py`.** Move the constants out of `silver_to_gold.py` and add `check_claim`:
+- [x] **Step 2.1: Create `claim_rules.py`.** Move the constants out of `silver_to_gold.py` and add `check_claim`:
 
   ```python
   """The claim rules: the single copy, used by the pipeline (gold.claim_checks, gold.policy_lookup) and the app."""
@@ -111,18 +111,18 @@
               "claim_status": "needs_review" if failed else "auto_approved"}
   ```
 
-- [ ] **Step 2.2: Use it in the pipeline.**
+- [x] **Step 2.2: Use it in the pipeline.**
   - In `silver_to_gold.py`, replace the four constants with `from claims_app.claim_rules import CHECKS, COVERAGE_LIMITS, EXPECTED_DAMAGE, MAX_SPEED_KMH`. The pipeline's `root_path` is `../src`, so the import resolves.
   - Append the MV `policy_lookup`: one row per policy from silver `policy` + `customer` + gold `aggregated_telematics` (left join on the chassis number). Columns: `policy_no`, `customer_id`, `full_name`, `coverage`, `coverage_limit` (from `COVERAGE_LIMITS`), `start_date`, `end_date`, `chassis_number`, `max_speed`, each with a `COMMENT` in a `schema` DDL, as for `claim_checks`.
-- [ ] **Step 2.3: Deploy and run** `transformations`.
+- [x] **Step 2.3: Deploy and run** `transformations`.
 
   **Check:**
   - `claim_checks` still has 1,687 / 11,312 auto-approved / needs review. This shows the rules didn't change.
   - `policy_lookup` has one row per policy (about 12,000), and 10 of them have a `max_speed`.
-- [ ] **Step 2.4: Add `policy_lookup_synced`** (key `policy_no`) to `resources/claims_app.yml`, built the same way as `claim_checks_synced`, or from `gold.policy_lookup_sync` if Task 3 was needed. Deploy.
+- [x] **Step 2.4: Add `policy_lookup_synced`** (key `policy_no`) to `resources/claims_app.yml`, built the same way as `claim_checks_synced`, or from `gold.policy_lookup_sync` if Task 3 was needed. Deploy.
 
   **Check:** the row count in Postgres matches.
-- [ ] **Step 2.5: Check the files** with `git status --short`.
+- [x] **Step 2.5: Check the files** with `git status --short`.
 
 ---
 
@@ -184,7 +184,7 @@
   - the photo saved to `claims/app_uploads/<claim_no>.<ext>` first, then the row inserted with `APP%08d` from the sequence
   - the result box (approved / needs review, each check ✓ / ✗ / –)
 - [ ] **Step 5.3: Deploy, then try it (you, UI).**
-  - **Claim 1:** submit a matching claim on `POL0000001` (it has telematics), for example an image from `training_images` whose label matches your severity, with an amount under the limit.
+  - **Claim 1:** submit a matching claim on `POL0000003` (telematics, max speed 148.2, so `speed_ok` passes; `POL0000001` is at 159.1 and would fail it), for example an image from `training_images` whose label matches your severity, with an amount under the limit.
   - **Claim 2:** a claim over the limit.
   - **Claim 3:** an unknown policy.
 

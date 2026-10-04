@@ -4,6 +4,8 @@ from geopy.distance import geodesic
 from pyspark import pipelines as dp
 from pyspark.sql import functions as F
 
+from claims_app.claim_rules import CHECKS, COVERAGE_LIMITS, EXPECTED_DAMAGE, MAX_SPEED_KMH
+
 GOLD = spark.conf.get("transformations.gold_schema")  # e.g. e2e_dev.dev_keqingli1129_gold
 GOLD_PROPERTIES = {"quality": "gold"}
 HOUSTON_CENTER = (29.7604, -95.3698)
@@ -63,11 +65,7 @@ def customer_claim_policy_telematics():
 
 
 # --- Claim checks (part 6): the business rules used by the dashboard, Genie and the app. ---
-
-EXPECTED_DAMAGE = {"Trivial Damage": "ok", "Minor Damage": "minor", "Major Damage": "major", "Total Loss": "major"}
-COVERAGE_LIMITS = {"COMPREHENSIVE": 20000, "COLLISION": 15000, "LIABILITY": 10000}
-MAX_SPEED_KMH = 150
-CHECKS = ["severity_match", "amount_within_limit", "policy_valid", "speed_ok"]
+# The rule constants live in src/claims_app/claim_rules.py, the single copy shared with the app (part 6b).
 
 
 def _as_map(mapping):
@@ -150,4 +148,47 @@ def claim_checks():
         *CHECKS,
         "failed_checks",
         "claim_status",
+    )
+
+
+# --- Policy lookup (part 6b): what the app needs to check a new claim against its policy. ---
+
+POLICY_LOOKUP_SCHEMA = """
+    policy_no STRING COMMENT 'Policy number (key), e.g. POL0000001',
+    customer_id STRING COMMENT 'Customer who owns the policy',
+    full_name STRING COMMENT 'Customer full name',
+    coverage STRING COMMENT 'Policy coverage: COMPREHENSIVE, COLLISION or LIABILITY',
+    coverage_limit INT COMMENT 'Maximum claim amount for the coverage, in USD',
+    start_date DATE COMMENT 'Policy start date',
+    end_date DATE COMMENT 'Policy end date',
+    chassis_number STRING COMMENT 'Car chassis number (links to telematics)',
+    max_speed DOUBLE COMMENT 'Highest speed recorded by the car telematics, km/h; NULL if the car has no telematics'
+"""
+
+
+@dp.materialized_view(
+    name=f"{GOLD}.policy_lookup",
+    comment="One row per policy with its coverage limit, dates and the car's top speed, for checking new claims.",
+    # External metadata lets the app's continuous Lakebase sync read this MV's change feed.
+    table_properties={**GOLD_PROPERTIES, "pipelines.externalMetadata.enabled": "true"},
+    schema=POLICY_LOOKUP_SCHEMA,
+)
+def policy_lookup():
+    policies = spark.read.table("policy")
+    customers = spark.read.table("customer").select("customer_id", "full_name")
+    speeds = spark.read.table(f"{GOLD}.aggregated_telematics").select("chassis_number", "max_speed")
+    return (
+        policies.join(customers, "customer_id")  # inner, like customer_claim_policy: deleted customers drop out
+        .join(speeds, "chassis_number", "left")
+        .select(
+            "policy_no",
+            "customer_id",
+            "full_name",
+            "coverage",
+            _as_map(COVERAGE_LIMITS)[F.col("coverage")].cast("int").alias("coverage_limit"),
+            "start_date",
+            "end_date",
+            "chassis_number",
+            "max_speed",
+        )
     )
