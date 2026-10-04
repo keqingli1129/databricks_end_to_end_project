@@ -104,7 +104,8 @@ CLAIM_CHECKS_SCHEMA = """
 @dp.materialized_view(
     name=f"{GOLD}.claim_checks",
     comment="One row per claim with the automatic claim checks and the resulting status (auto_approved / needs_review).",
-    table_properties=GOLD_PROPERTIES,
+    # External metadata lets readers get this MV's change feed: the app's continuous Lakebase sync (part 6b).
+    table_properties={**GOLD_PROPERTIES, "pipelines.externalMetadata.enabled": "true"},
     schema=CLAIM_CHECKS_SCHEMA,
 )
 def claim_checks():

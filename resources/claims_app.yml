@@ -1,0 +1,35 @@
+# Part 6b: the claims app (see docs/part6b_app_design.md).
+# Lakebase: the project smart-claims-dev belongs to the separate smart_claims_dev bundle (Free Edition allows one).
+# We only reference its production branch and own our database e2e_claims_<target> inside it. Destroying smart_claims_dev
+# deletes the project and our database with it.
+
+variables:
+  lakebase_branch:
+    description: Lakebase branch (in smart_claims_dev's project) that holds our database.
+    default: projects/smart-claims-dev/branches/production
+
+resources:
+  postgres_databases:
+    e2e_claims_database:
+      parent: ${var.lakebase_branch}
+      # The target is part of the name: dev and prod share the one project, and dev mode doesn't prefix databases.
+      database_id: e2e-claims-${bundle.target}
+      postgres_database: e2e_claims_${bundle.target}
+      # Owner: your Postgres role in the branch (it also owns smart_claims_dev's database).
+      role: ${var.lakebase_branch}/roles/${workspace.current_user.short_name}
+
+  postgres_synced_tables:
+    claim_checks_synced:
+      # The UC name of the synced table; in Postgres it is <gold schema>.claim_checks_pg in database e2e_claims_<target>.
+      synced_table_id: ${var.catalog}.${resources.schemas.gold.name}.claim_checks_pg
+      source_table_full_name: ${var.catalog}.${resources.schemas.gold.name}.claim_checks
+      primary_key_columns: [claim_no]
+      scheduling_policy: CONTINUOUS
+      branch: ${var.lakebase_branch}
+      postgres_database: ${resources.postgres_databases.e2e_claims_database.postgres_database}
+      create_database_objects_if_missing: true
+      new_pipeline_spec:
+        storage_catalog: ${var.catalog}
+        storage_schema: ${resources.schemas.gold.name}
+        # Automatic (read-time) change data feed from a materialized view needs the PREVIEW channel.
+        pipeline_channel: PREVIEW
