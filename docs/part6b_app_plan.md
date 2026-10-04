@@ -181,10 +181,14 @@
 - Modify: `src/claims_app/app.py`
 - Create: `src/claims_app/services.py` (endpoint call, volume read/write)
 
-- [ ] **Step 5.1: The photo and the prediction:**
+- [x] **Step 5.1: The photo and the prediction:**
   - an uploader, and the photo shown next to the model's label
   - the endpoint called with `{"dataframe_records": [{"content": "<base64>"}]}` through the SDK
   - one retry with a 120 s timeout, then NULL
+
+  **Result (2026-10-03):** `47-major (3).png` → **MAJOR**. The page first kept looping between "Connecting" and "Running". smart_claims_dev's `src/app/app.yaml` had the fix:
+  - Streamlit flags in the app's `config.command`: `--server.enableWebsocketCompression=false` (the Apps proxy mishandles compressed websockets), and `--server.enableXsrfProtection=false --server.enableCORS=false` (otherwise uploads fail with a 400 behind the proxy)
+  - `streamlit==1.65.0`, pinned in `requirements.txt` (overriding the runtime's 1.38) and in pyproject's dev group
 - [ ] **Step 5.2: The form and the submit:**
   - the fields from the design
   - the policy lookup in the synced `policy_lookup`

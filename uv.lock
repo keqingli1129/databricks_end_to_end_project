@@ -668,7 +668,7 @@ dev = [
     { name = "psycopg-pool", specifier = ">=3.2,<4" },
     { name = "pytest" },
     { name = "ruff" },
-    { name = "streamlit" },
+    { name = "streamlit", specifier = "==1.65.0" },
     { name = "torch", specifier = ">=2.14.1" },
 ]
 

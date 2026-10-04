@@ -57,7 +57,17 @@ resources:
       source_code_path: ../src/claims_app
       # Instead of an app.yaml: here ${...} works, which the per-target schema name needs.
       config:
-        command: ["streamlit", "run", "app.py"]
+        # The flags behind the Databricks Apps proxy (found in smart_claims_dev's app.yaml):
+        # - no websocket compression: the proxy mishandles it, and the page drops and reconnects in a loop;
+        # - no XSRF check (and so no CORS, which Streamlit requires with it): its token doesn't survive the proxy,
+        #   and photo uploads fail with a 400. Databricks Apps already signs every user in before the app.
+        command:
+          - streamlit
+          - run
+          - app.py
+          - --server.enableWebsocketCompression=false
+          - --server.enableXsrfProtection=false
+          - --server.enableCORS=false
         env:
           - name: SYNCED_SCHEMA  # the Postgres schema of claim_checks_pg / policy_lookup_pg
             value: ${resources.schemas.gold.name}
