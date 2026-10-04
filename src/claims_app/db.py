@@ -12,6 +12,7 @@ import psycopg
 from databricks.sdk import WorkspaceClient
 from psycopg import sql
 from psycopg.rows import dict_row
+from psycopg.types.json import Jsonb
 from psycopg_pool import ConnectionPool
 
 SYNCED_SCHEMA = os.environ["SYNCED_SCHEMA"]  # e.g. dev_keqingli1129_gold: where claim_checks_pg/policy_lookup_pg live
@@ -127,3 +128,38 @@ def table_counts(pool: ConnectionPool) -> dict:
     )
     with pool.connection() as conn:
         return conn.execute(query).fetchone()
+
+
+def get_policy(pool: ConnectionPool, policy_no: str) -> dict | None:
+    """A policy from the synced gold.policy_lookup, or None if there's no such policy."""
+    query = sql.SQL("SELECT * FROM {policies} WHERE policy_no = %s").format(
+        policies=sql.Identifier(SYNCED_SCHEMA, "policy_lookup_pg")
+    )
+    with pool.connection() as conn:
+        return conn.execute(query, [policy_no]).fetchone()
+
+
+def next_claim_no(pool: ConnectionPool) -> str:
+    """APP00000001, APP00000002, ...: can't clash with the pipeline's CLM numbers."""
+    with pool.connection() as conn:
+        number = conn.execute("SELECT nextval('app.claim_no_seq')").fetchone()["nextval"]
+    return f"APP{number:08d}"
+
+
+APP_CLAIM_COLUMNS = [
+    "claim_no", "policy_no", "customer_id", "full_name", "incident_date", "incident_type", "incident_severity",
+    "claim_amount", "coverage", "coverage_limit", "start_date", "end_date", "chassis_number", "max_speed",
+    "image_name", "expected_damage", "predicted_damage", "severity_match", "amount_within_limit", "policy_valid",
+    "speed_ok", "failed_checks", "claim_status", "location", "collision_type", "vehicles_involved", "notes",
+]  # fmt: skip
+
+
+def insert_app_claim(pool: ConnectionPool, claim: dict) -> None:
+    """One row into app.app_claims; claim has a value for every APP_CLAIM_COLUMNS name."""
+    values = {**claim, "failed_checks": Jsonb(claim["failed_checks"])}
+    query = sql.SQL("INSERT INTO app.app_claims ({columns}) VALUES ({values})").format(
+        columns=sql.SQL(", ").join(map(sql.Identifier, APP_CLAIM_COLUMNS)),
+        values=sql.SQL(", ").join(map(sql.Placeholder, APP_CLAIM_COLUMNS)),
+    )
+    with pool.connection() as conn:
+        conn.execute(query, values)

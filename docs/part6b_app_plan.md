@@ -189,13 +189,13 @@
   **Result (2026-10-03):** `47-major (3).png` → **MAJOR**. The page first kept looping between "Connecting" and "Running". smart_claims_dev's `src/app/app.yaml` had the fix:
   - Streamlit flags in the app's `config.command`: `--server.enableWebsocketCompression=false` (the Apps proxy mishandles compressed websockets), and `--server.enableXsrfProtection=false --server.enableCORS=false` (otherwise uploads fail with a 400 behind the proxy)
   - `streamlit==1.65.0`, pinned in `requirements.txt` (overriding the runtime's 1.38) and in pyproject's dev group
-- [ ] **Step 5.2: The form and the submit:**
+- [x] **Step 5.2: The form and the submit:**
   - the fields from the design
   - the policy lookup in the synced `policy_lookup`
   - `check_claim`
   - the photo saved to `claims/app_uploads/<claim_no>.<ext>` first, then the row inserted with `APP%08d` from the sequence
   - the result box (approved / needs review, each check ✓ / ✗ / –)
-- [ ] **Step 5.3: Deploy, then try it (you, UI).**
+- [x] **Step 5.3: Deploy, then try it (you, UI).**
   - **Claim 1:** submit a matching claim on `POL0000003` (telematics, max speed 148.2, so `speed_ok` passes; `POL0000001` is at 159.1 and would fail it), for example an image from `training_images` whose label matches your severity, with an amount under the limit.
   - **Claim 2:** a claim over the limit.
   - **Claim 3:** an unknown policy.
@@ -205,7 +205,14 @@
   - Claim 2 is `needs_review` with `amount_within_limit` ✗.
   - Claim 3 shows the message and saves nothing.
   - The rows and photos exist.
-- [ ] **Step 5.4: Check the files** with `git status --short`.
+
+  **Result (2026-10-04):**
+  - `APP00000003` (POL0000003, Major Damage, $12,000) was **auto_approved** ✅✅✅✅.
+  - `APP00000001` and `APP00000002` (Trivial Damage vs a major photo) went to **needs_review** with `severity_match` ✗.
+  - Rows and photos (`app_uploads/APP0000000N.png`) were verified.
+  - The over-limit and unknown-policy cases weren't tried in the UI.
+  - Fixed along the way: `$` in `st.write` text is read as a LaTeX formula, so it's escaped as `\$`.
+- [x] **Step 5.4: Check the files** with `git status --short`.
 
 ---
 
