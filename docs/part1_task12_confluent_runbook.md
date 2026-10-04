@@ -29,7 +29,7 @@ CREATE TABLE e2e_dev.dev_keqingli1129_bronze.telematics_files_backup AS
 SELECT * FROM e2e_dev.dev_keqingli1129_bronze.telematics;
 ```
 
-- [ ] Decided: back up, or accept losing the file-based rows.
+- [x] Decided: back up, or accept losing the file-based rows. (2026-10-04: no backup; switching back to files restores them.)
 
 ---
 
@@ -52,7 +52,7 @@ SELECT * FROM e2e_dev.dev_keqingli1129_bronze.telematics;
    pkc-xxxxx.us-east-2.aws.confluent.cloud:9092
    ```
 
-- [ ] I have: the **bootstrap server**, the **API key** and the **API secret**.
+- [x] I have: the **bootstrap server**, the **API key** and the **API secret**.
 
 ---
 
@@ -76,7 +76,7 @@ It should list the 3 keys with a **new** "Last Updated" timestamp. The values ar
 
 These commands go into your shell history. To keep the secret out of it, run `databricks secrets put-secret kafka_dev api_secret --profile DEFAULT` without `--string-value`, and type or paste the value when it prompts you.
 
-- [ ] Secrets updated.
+- [x] Secrets updated. (2026-10-04, entered at the prompt)
 
 ---
 
@@ -94,7 +94,7 @@ env -u PYTHONPATH uv run simulate --sink kafka --secret-scope kafka_dev --count 
 
 If it fails, see **Troubleshooting** at the end. The most common causes are a typo in the bootstrap server, or an API key made for a different cluster.
 
-- [ ] 5 messages are visible in the Confluent topic.
+- [x] 5 messages are visible in the Confluent topic. (2026-10-04: "Sent 5 events to topic telematics")
 
 ---
 
@@ -114,7 +114,7 @@ print("✅ reachable:", host, port)
 - **`✅ reachable`:** continue to section 5.
 - **`gaierror` or `timed out`:** serverless can't reach Confluent from this workspace. Stop here. The pipeline would fail the same way. Stay on `files` mode, or use a workspace without this restriction.
 
-- [ ] Reachable from serverless.
+- [x] Reachable from serverless. (2026-10-04: one-time serverless notebook run printed "reachable"; a Databricks Connect UDF probe failed first with an internal sandbox error, unrelated to the network.)
 
 ---
 
@@ -147,7 +147,7 @@ It should show `"telematics.source": "kafka"`.
 
 To try Kafka without changing the file, use `--var="telematics_source=kafka"` on `deploy` instead. The next deploy without it switches back to `files`.
 
-- [ ] Deployed with `telematics.source = kafka`.
+- [x] Deployed with `telematics.source = kafka`. (2026-10-04. The first deploy failed: part 6b's paused Lakebase compute blocks all deploys. Enabled it for the deploy, then disabled it again.)
 
 ---
 
@@ -173,7 +173,22 @@ ORDER BY event_timestamp;
 
 `partition` and `offset` are now **filled in**. In files mode they were null, so seeing values proves the rows came from Kafka.
 
-- [ ] Kafka rows are visible in both tables.
+- [x] Kafka rows are visible in both tables. (2026-10-04: 5 / 5 rows, topic telematics, partitions 3-5 of the default 6, offsets from 0.)
+
+---
+
+## 6b. Full refresh of `silver.telematics` (added 2026-10-04)
+
+The full refresh in section 6 **rewrites** `bronze.telematics`. `silver.telematics` (part 4) is a streaming table that reads it, so its checkpoint no longer matches and a normal run would fail. Refresh just that table, then do a normal run so gold recomputes:
+
+```bash
+env -u PYTHONPATH databricks bundle run transformations --full-refresh telematics --profile DEFAULT
+env -u PYTHONPATH databricks bundle run transformations --profile DEFAULT
+```
+
+`--full-refresh <table>` updates only the tables it names, which is why the second, normal run is needed for the gold MVs.
+
+- [x] silver.telematics has 5 rows; gold.aggregated_telematics has 4 cars; claim_checks has 4 claims with speed_ok checked. (2026-10-04)
 
 ---
 
@@ -186,11 +201,13 @@ env -u PYTHONPATH databricks bundle run telematics_ingestion --profile DEFAULT  
 
 **Check:** both tables grow by exactly **50**, so `telematics_raw` goes from 5 to 55. Kafka offsets now do the job the file list did in files mode.
 
-- [ ] +50 rows, no duplicates.
+- [x] +50 rows, no duplicates. (2026-10-04: the serverless simulator job sent 50; raw and bronze 5 -> 55; 55 distinct partition+offset pairs over partitions 0,1,3,4,5.)
 
 ---
 
 ## 8. Continuous mode, as in the transcript (optional)
+
+> **2026-10-04: this section doesn't work in the `dev` target.** `mode: development` silently drops `continuous: true` from pipelines (`bundle validate` shows `continuous: None`), and `presets.trigger_pause_status: UNPAUSED` is rejected ("target with 'mode: development' cannot set trigger pause status to UNPAUSED"). In dev, the closest you can get is a **continuous job** (`continuous: pause_status: UNPAUSED` plus a `pipeline_task`), which re-runs the triggered pipeline back to back, about a minute apart; that's also what the UI's Schedule → Trigger type: Continuous creates. A truly continuous pipeline belongs in **prod**, as a target override (`targets.prod.resources.pipelines.telematics_ingestion.continuous: true`). Skipped this time.
 
 1. In `resources/telematics_ingestion.pipeline.yml`, add under `telematics_ingestion:`:
 
@@ -203,13 +220,13 @@ env -u PYTHONPATH databricks bundle run telematics_ingestion --profile DEFAULT  
 3. Open the pipeline in the UI. The row counts rise every few seconds, which is the transcript's "records being updated in real time".
 4. **When you're done, stop it** with the **Stop** button in the UI. Then remove `continuous: true` and redeploy. A continuous pipeline runs, and uses serverless compute, until it's stopped.
 
-- [ ] Stopped, and `continuous` removed again.
+- [x] Skipped (dev mode; see the note above).
 
 ---
 
 ## 9. Clean up and follow-ups
 
-- [ ] **Update `CLAUDE.md`:** in the Telematics ingestion bullet, change "(… currently placeholders)" to say the real Confluent values are set, and that the default source is `kafka`.
+- [x] **Update `CLAUDE.md`:** in the Telematics ingestion bullet, change "(… currently placeholders)" to say the real Confluent values are set, and that the default source is `kafka`.
 - [ ] **Commit** `databricks.yml` and `CLAUDE.md`. Never commit the secret values. They exist only in the secret scope.
 - [ ] **Cost:** when you no longer need live Kafka, delete the Confluent cluster: *Cluster settings* → **Delete cluster**. Then switch back to files (section 10), or the pipeline will fail to connect.
 - [ ] **Prod, if you ever deploy `-t prod`:** the bundle creates a **separate** scope, `kafka_prod`. Put its 3 secrets as in section 2, ideally with a separate cluster or API key for prod, then run prod's first pipeline update with `--full-refresh-all` too.
