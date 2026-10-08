@@ -96,7 +96,7 @@ targets:
 | `var.gateway_driver_node_type` / `var.gateway_node_type` | not used | `Standard_D8ds_v5` / `Standard_D4ds_v5` (12 vCPU) |
 
 **How part 2 differs per target:** a bundle can't remove a shared resource for one target, and target overrides *merge* into shared definitions. A Python-file pipeline and an `ingestion_definition` pipeline can't be merged. So:
-- An included resource file may have its own `targets:` section. So `cdc_ingestion.pipeline.yml` and `seed_source_database.job.yml` wrap their content in `targets: dev / prod`, using a YAML anchor on `dev` and an alias in `prod`. Their paths and keys stay the same, so the AWS deployment state still matches.
+- An included resource file may have its own `targets:` section. So `ingest_cdc_insurance.pipeline.yml` and `seed_source_database.job.yml` wrap their content in `targets: dev / prod`, using a YAML anchor on `dev` and an alias in `prod`. Their paths and keys stay the same, so the AWS deployment state still matches.
 - A new file, `resources/azure_cdc_ingestion.yml`, defines `targets: azure_dev` with the gateway plus its own `cdc_ingestion`.
 - **Keeping the key `cdc_ingestion` on both clouds** means `smart_claims_end_to_end` (`${resources.pipelines.cdc_ingestion.id}`) works unchanged.
 - The `source` schema stays shared; on Azure it's simply empty.
@@ -172,7 +172,7 @@ targets:
 | File | Responsibility |
 |---|---|
 | `databricks.yml` | AWS comments, targets `azure_dev` and `azure_prod`, variables `serving_model_version`, `name_suffix`, `gateway_driver_node_type`, `gateway_node_type` |
-| `resources/cdc_ingestion.pipeline.yml`, `resources/seed_source_database.job.yml` | content wrapped in `targets: dev / prod` (AWS only) |
+| `resources/ingest_cdc_insurance.pipeline.yml`, `resources/seed_source_database.job.yml` | content wrapped in `targets: dev / prod` (AWS only) |
 | `resources/damage_classifier.yml` | endpoint wrapped per target; `entity_version: ${var.serving_model_version}` |
 | `resources/claims_app.yml` | Lakebase database, synced tables and app wrapped per target; `name_suffix` in the app name and database id |
 | `resources/azure_cdc_ingestion.yml` | gateway and Lakeflow Connect `cdc_ingestion` (`azure_dev`) |

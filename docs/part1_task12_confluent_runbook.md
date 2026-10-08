@@ -209,7 +209,7 @@ env -u PYTHONPATH databricks bundle run telematics_ingestion --profile DEFAULT  
 
 > **2026-10-04: this section doesn't work in the `dev` target.** `mode: development` silently drops `continuous: true` from pipelines (`bundle validate` shows `continuous: None`), and `presets.trigger_pause_status: UNPAUSED` is rejected ("target with 'mode: development' cannot set trigger pause status to UNPAUSED"). In dev, the closest you can get is a **continuous job** (`continuous: pause_status: UNPAUSED` plus a `pipeline_task`), which re-runs the triggered pipeline back to back, about a minute apart; that's also what the UI's Schedule → Trigger type: Continuous creates. A truly continuous pipeline belongs in **prod**, as a target override (`targets.prod.resources.pipelines.telematics_ingestion.continuous: true`). Skipped this time.
 
-1. In `resources/telematics_ingestion.pipeline.yml`, add under `telematics_ingestion:`:
+1. In `resources/ingest_stream_telematics.pipeline.yml`, add under `telematics_ingestion:`:
 
    ```yaml
          continuous: true
@@ -253,6 +253,6 @@ After the full refresh, Auto Loader re-reads **all** the files still in the land
 | Section 4 prints `gaierror` / `timed out` | serverless notebook | Outbound network from serverless is blocked in this workspace. Stay on files mode. |
 | Pipeline: `No LoginModule found` / `ClassNotFoundException … PlainLoginModule` | pipeline | In `src/databricks_end_to_end_project/telematics/kafka_config.py`, change `kafkashaded.org.apache.kafka.common.security.plain.PlainLoginModule` to `org.apache.kafka.common.security.plain.PlainLoginModule`. Update `tests/telematics_kafka_config_test.py` to match, then deploy and re-run. |
 | Pipeline: checkpoint, "source has changed", or schema mismatch after switching | pipeline | You ran without `--full-refresh-all`. Re-run section 6. |
-| Pipeline: `No module named 'databricks_end_to_end_project'` | pipeline | `root_path` isn't `"../src"` in `telematics_ingestion.pipeline.yml`. See the step 9.4 note in the plan. |
+| Pipeline: `No module named 'databricks_end_to_end_project'` | pipeline | `root_path` isn't `"../src"` in `ingest_stream_telematics.pipeline.yml`. See the step 9.4 note in the plan. |
 | Pipeline completes but 0 new rows | pipeline | Nothing new is in the topic since the last run. Send events first (section 7). Or events went to a different topic: check `telematics_topic`. |
 | Tables empty right after the full refresh, but the topic has messages | pipeline | `startingOffsets` isn't `earliest`, or messages older than the topic's retention period have expired. Send new events, then run again. |

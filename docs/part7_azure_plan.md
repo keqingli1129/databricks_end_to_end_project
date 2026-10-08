@@ -254,7 +254,7 @@ databricks warehouses list --profile azure          # note the starter warehouse
 
 **Files:**
 - Modify: `databricks.yml`: comments on the AWS targets, new variables, targets `azure_dev` and `azure_prod`
-- Modify: `resources/cdc_ingestion.pipeline.yml`, `resources/seed_source_database.job.yml`: wrap in `targets: dev / prod`
+- Modify: `resources/ingest_cdc_insurance.pipeline.yml`, `resources/seed_source_database.job.yml`: wrap in `targets: dev / prod`
 - Modify: `resources/damage_classifier.yml`: endpoint moves into `targets: dev / prod`; `entity_version` from a variable
 - Modify: `resources/claims_app.yml`: database, synced tables and app move into `targets: dev / prod`; names use `var.name_suffix`
 
@@ -314,7 +314,7 @@ App names and Lakebase database IDs **don't allow underscores**, so `e2e-claims-
           warehouse: <exact name from Task 5.3>
 ```
 
-- [ ] **7.2** `resources/cdc_ingestion.pipeline.yml`: replace the top-level `resources:` with a targets wrapper. The body is unchanged, only indented:
+- [ ] **7.2** `resources/ingest_cdc_insurance.pipeline.yml`: replace the top-level `resources:` with a targets wrapper. The body is unchanged, only indented:
 
 ```yaml
 # CDC ingestion (see docs/transcript_2.txt): applies inserts/updates/deletes from the source schema

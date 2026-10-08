@@ -39,7 +39,7 @@ SELECT (SELECT count(*) FROM e2e_dev.dev_keqingli1129_bronze.telematics_raw) AS 
 
 ## 2. Make the pipeline continuous
 
-In `resources/telematics_ingestion.pipeline.yml`, add `continuous: true` under `serverless: true`:
+In `resources/ingest_stream_telematics.pipeline.yml`, add `continuous: true` under `serverless: true`:
 
 ```yaml
       serverless: true
@@ -138,7 +138,7 @@ databricks pipelines get c82a1f40-d0b5-4bd0-aa8d-b16ed2e0c14f --profile DEFAULT 
 
 ## 6. Switch back to triggered, so it can't keep running by accident
 
-Remove the `continuous: true` line from `resources/telematics_ingestion.pipeline.yml`, then:
+Remove the `continuous: true` line from `resources/ingest_stream_telematics.pipeline.yml`, then:
 
 ```bash
 env -u PYTHONPATH databricks bundle deploy --profile DEFAULT
@@ -146,7 +146,7 @@ env -u PYTHONPATH databricks bundle deploy --profile DEFAULT
 
 **Expected:** `Updated pipelines.telematics_ingestion`.
 
-**Check:** `git diff resources/telematics_ingestion.pipeline.yml` shows **no changes**, so the file is back to exactly its committed version.
+**Check:** `git diff resources/ingest_stream_telematics.pipeline.yml` shows **no changes**, so the file is back to exactly its committed version.
 
 Why switch back? A deploy doesn't start the pipeline. But if `continuous: true` stays in the file, any later start runs forever, and so does the `bundle run` in the plan or runbook. Triggered is the safe default for a demo project.
 
