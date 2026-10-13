@@ -1,0 +1,304 @@
+Intro
+hello guys welcome back to the channel
+for a new datab bricks video today's
+video will be about custom logging in
+data bricks using python we have done
+something very similar in the past but
+today we are going to adjust it to the
+datab briak environment we are going to
+extend the logging module customize our
+logs get all the necessary information
+we need and then store all this data
+into a table so that later on we can
+query this table and monitor our logs
+it's very easy to customize the logging
+model mod but at the same time it's very
+useful to get and store all the
+necessary information you need to keep
+track of your data pipelines and your
+logs so let's jump into the
+[Music]
+code okay guys so we are in our databas
+environment here I have the databas
+notebook with all the code for this demo
+for custom logging the first thing we
+have to do is import the Lo Ling Library
+How to customize your logs
+the daytime Library the inspect library
+to to see the source code of uh some of
+the loging classes that we are going to
+extend in a little bit and then we
+import the data types from ppar SQL Json
+in DBS now let's scroll down to the main
+function here the first thing I want to
+show you is the attributes of the log
+record class of the loging module so
+let's run the code and see what we get
+because you need to understand the log
+record class and the attributes that we
+want in order to customize our logs and
+here the log record has a name level
+path name line number message or
+arguments all these kind of things that
+we want to store in our
+table then we are going to
+extend the Handler class which is now
+that the most important thing because
+here we have to use as you can see let's
+scroll
+up here is the Handler class and we are
+going to extend this original class here
+and there is a function called Emit and
+here you you customize the logic as you
+can see by default they uh they have do
+whatever it takes to actually log the
+specified logging record so we are going
+to implement this emit uh function here
+in our code
+right and let's see how we can do that
+first we use loging doget logger provide
+the name for your logger and then we set
+the level to debug or whatever you want
+here and then here is the custom uh
+Handler so this is the Handler we are
+going to extend from the original class
+and here is the class of the custom
+Handler as you can see we extend the the
+login. Handler uh class and we have in
+the init function we is super do init to
+get uh the Constructor of the original
+class and here we also provide the
+schema as you can see here is the final
+schema of the records we are going to
+save in our tables because this is what
+we want to store in our logs would be
+the notebook path notebook ID level name
+function name number message and created
+time stamp right so here in the emit
+function also that's under custom
+Handler and we are going to extend it
+and say if there is a record then we
+want all these data record level name
+fun name line number message right so
+let me actually remove this and let's
+run this and see what we
+get we get get all these things right so
+we have record level uh is debug
+function name is test logs line number
+46 the message is the message that we
+provided now here is the test logs
+function as you can see I passed the
+logger the custom logger that we created
+here so here we instantiate the custom
+Handler um class and then we do logger
+do add Handler we pass the custom
+Handler that we cre and here we test uh
+we pass the logger in the testore logs
+function and inside the tri Cuts here I
+have logger debug mode this is the debug
+mode the info mode the warning mode then
+I do a uh I divide by zero so that will
+give an exception and here I have logger
+do arrow and logger do critical as you
+remember there are five levels here
+debug info warning error and critical so
+this is here you provide the
+message and uh when you come here in
+under this bit here in the emit function
+you can see we have the record and the
+record contains all this information the
+level name which is debug for example
+for this one is debug for this one is
+info this one is warning this one is for
+error and this one is for critical and
+uh we have this uh level we have the
+function name so this is the function
+name is test logs so from which function
+it was called from which is very very
+important to know the line number that's
+also very important and the message
+right so the message is this one that we
+pass when we use uh the logger in our
+code okay so here as you can see we
+print all this information debug test
+logs line number the message then info
+test logs etc etc for all those levels
+let me comment this out here and let
+bring back this one so let's for say
+that we going to know the notebook path
+and the notebook ID how can we do that
+we can use
+DBS do notebook. entry point that do get
+DBS notebook get context to Json which
+is
+why we imported ppar DBS uh DBS from
+ppar and here we instan ADB utilties
+right
+and let's
+print this all these
+things and you can see here so let
+me run
+this and as you can see this Json here
+I have printed all the
+results and it gives all this
+information and you can pick and choose
+whatever information you need uh
+whichever attribute you need here we
+need notebook path and notebook ID in
+order to understand where these logs are
+coming from and that's how you can get
+these attributes
+params extract extra content context and
+notebook p path which is the path here
+so extra context and then notebook path
+and notebook ID and what we're are going
+to do now that's the next step this is
+actually to customize This Record here
+and and then save it into a table so we
+have all the necessary attributes we
+want to monitor our
+logs let me uncomment this part here so
+we
+create a list we append all the
+attributes we want notebook path
+notebook ID record level name record
+function name record line number the
+message in from uh we provide the
+current time stamp to uh have this uh
+Crea timestamp column here and then we
+print the logs I'm going to print the
+logs here you so you can understand what
+uh we're going to to save and here then
+we create a spice spark data frame we
+provide this uh list here with all the
+necessary information and the schema
+which is defined here and then we uh
+save it to this custom _ logs table
+right so let me run
+this The Notebook is running so let it
+give it some seconds here and we should
+get a table called custom _ logs which
+will contain all these data that we
+customized right and let's see as you
+can see it finished let me create the
+table and see what we get and we get the
+notebook path right so that's very very
+useful you know in which notebook the
+errow is coming from we get the notebook
+ID the level name for example we have
+critical warning debug error info based
+on the logs
+that uh based on the level that we
+provided here in the code right five
+levels and then the function name which
+is testore logs here very useful as well
+to know where the code uh in which
+function the code failed the line number
+the message that we provide and the time
+stamp so we have all this information
+and later on we can query this table and
+see what happened and what went wrong or
+whatever you are looking for now are as
+you can see I'm using the append mode so
+if we run this again it's going to
+append the new data into the table so we
+don't miss anything we don't override
+the table so let's uh give it a second
+to run again and query the table and we
+should expect 10 records this time let's
+see yeah still it's running give it a
+second it will take uh couple of minutes
+I
+assume yep as you can see now we have 15
+records actually I run it three times
+and uh then you can create this table
+and say you know what happened
+uh uh what was the level name so select
+from Custom logs where level name for
+example equals you know info or critical
+or whatever so you have this Choice
+which is very very useful
+now moving on we have a second notebook
+so let's go here to this notebook which
+is exactly the same but we also add some
+job logs for example again we are using
+the DBS the entry point do get DS The
+Notebook get context to Json and from
+here instead of
+uh what was the other type
+I think the other tag that we used here
+goes
+uh extra context instead of the exra
+context tag we are using the tags tag
+here and then we get the job ID the job
+name the C run ID and the notebook
+ID now there is a lot of more
+information as you so before when we
+print this Json here and uh I'm going to
+print this Json actually here we use
+json. dumps we pass the param and uh
+intent equals to four to be more
+readable and from here we can get uh job
+logs as well because usually you run
+your code into you include your code
+into a job right so you want this all
+those uh job parameters and then again
+you customize this uh list here you pass
+job ID job name and run ID notebook ID
+etc etc and then you pass all this
+information we get from record again the
+same thing we just change the uh schema
+here we Pro we have job ID job name
+current run ID and notebook ID
+apparently you can include more a lot
+more
+logs that we can get from uh DBS and uh
+let's see what uh we get here we uh
+append to this logging _ jobs _ logs and
+that's a new table so let's uh go into
+our workflow now you need to create a
+job apparently that uses this notebook
+otherwise you don't have those
+parameters that it returns
+empty let's say
+test come on
+yeah test and then we point to The
+Notebook
+custom loging jobs notebook job cluster
+the cluster we are already running and
+then yep let's create the task and run
+it and see what we get right let's run
+this you run come on
+jobs this one is running let's
+see the code is running
+we should expect this logging jobs uh
+logs table to be
+created and then using the select St we
+will see what we saved right so here
+remember I I told you here I'm going to
+print everything that we get from the
+DBS and from the job so here you can see
+in extra context this is the the path
+that we used in the previous example but
+now under
+tags here under tags we have the job
+name the operation
+ID job owner ID and all this information
+that we can gather from theb tals and
+save it in the logs for example now we
+have job ID job name current job run ID
+notebook ID level name again so more
+information when it comes to uh when we
+are running jobs just in case because
+usually you include your notebook into a
+job and you run the job and then you
+know if there is an arrow you want
+actually to uh to save all these logs
+and what
+happened this is it for today guys I
+hope you enjoyed the video and you
+learned something new I'm going to
+upload the code on GitHub so you can
+take a look play around uh you know
+adjust the code according to your own
+needs
