@@ -6,7 +6,7 @@
 
 **Design:** [part8_logging_design.md](part8_logging_design.md). **How to use:** [part8_logging_usage.md](part8_logging_usage.md).
 
-> **Status 2026-10-12:** Tasks 1-2 done. **Tasks 3-5 dropped at your request**: the simulator keeps its `print`s, and nothing is deployed or run yet. The usage guide replaces Task 5, and its "Not verified yet" section holds Task 4's open checks.
+> **Status 2026-10-12:** Tasks 1-2 done. **Tasks 3-5 dropped at your request**: the simulator keeps its `print`s, and The usage guide replaces Task 5. Task 4's checks were then done anyway: deployed and run successfully 2026-10-12 (see the usage guide's "Checked on Databricks").
 
 ## Global constraints
 

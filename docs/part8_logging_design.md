@@ -62,7 +62,7 @@ Created on the first write (append mode). Columns from the video are marked ★.
 
 **Context order**, per field: the value passed to `enable_table_logging`, else `get_context()` from `dbruntime.databricks_repl_context` (inside `try`/`except`), else `NULL`. Jobs pass `{{job.id}}`, `{{job.run_id}}` and `{{task.name}}` (dynamic value references) as notebook `base_parameters`.
 
-**Open question, checked by hand:** whether `get_context()` gives `notebook_path` on serverless. If not, notebooks pass it too; nothing else changes.
+**Checked 2026-10-12:** `get_context()` gives `notebook_path` on serverless, so notebooks don't pass it.
 
 ## Error handling
 

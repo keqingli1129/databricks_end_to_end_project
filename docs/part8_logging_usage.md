@@ -114,11 +114,10 @@ ORDER BY created_at DESC
 - **Re-running cells** is safe: handlers are found by name, so lines never print or save twice.
 - **`ModuleNotFoundError: databricks_end_to_end_project`** in a notebook: the `sys.path` line is missing, or the `..` count doesn't reach `src/`.
 
-## Not verified yet
+## Checked on Databricks (2026-10-12)
 
-Written 2026-10-12 while serverless was blocked by the Free Edition quota, so nothing has run on Databricks yet. On the first real run, check:
+The first job run of `ingest_claim_images` (run `355821109295159`) wrote 4 rows to `e2e_dev.dev_keqingli1129_ops.app_logs`, all with one `session_id`:
 
-1. That the `sys.path` line works in a notebook job (it assumes the working directory is the notebook's folder).
-2. Whether `notebook_path` is filled from `dbruntime.databricks_repl_context.get_context()`. If it stays NULL, pass `notebook_path=` explicitly like the job ids.
-
-The first run needs `databricks bundle deploy --profile DEFAULT`, which creates the `ops` schema. While the Lakebase compute is disabled (part 6b pause), deploys fail: enable it for the deploy, then disable it again (see CLAUDE.md).
+- **The `sys.path` line works** in a notebook job: a notebook task's working directory is the notebook's folder.
+- **`notebook_path` is filled** from `get_context()` (e.g. `/Users/<you>/.bundle/databricks_end_to_end_project/dev/files/src/object_storage/claim_images`), so there's no need to pass it. `job_id`, `job_run_id` and `task_key` came from the job's `{{...}}` parameters.
+- **In notebooks, `func_name` is `<module>` and `line_no` counts from the top of the cell**, not the file: each notebook cell is compiled separately. Use `message` and `created_at` to place a line; inside a function, `func_name` is the function's name.
