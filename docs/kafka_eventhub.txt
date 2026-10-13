@@ -1,0 +1,269 @@
+Intro
+hello everyone this is Pedro from python Lista with one more video today we're
+gonna talk about events Hub and Kafka and I'm gonna do a demo in Python so I'm
+gonna I'm gonna explain what is events Hub what is Kafka very very briefly but
+what I'm gonna do in Python is the producer and the consumer in the events
+hub so what is events Hub events hobby is a
+modern Big Data streaming platform and even ingestion service that can be seamlessly integrated with other Azure
+and Microsoft services such stream analytics power bi and event group along with outside services like
+Apache spark the service can process millions of events per second with low
+latency the data centered and events Hub events hubs instance can be transformed
+and stored by using any real-time analytics provider or batching or
+storage adapter so basically um what's under the hoods over events
+Hub it's a Kafka cluster I'm gonna open here a diagram
+and that's gonna explain a little bit better so basically uh events Hub is
+what you're gonna create here and when you create an event Hub we you
+create like um topics so in partitions and what you
+send to the event in real time uh are events so and who produces the events
+obviously are producers that are sent uh can be a Kafka or a message
+a call or events protocol amqp https that goes and those events in real time
+get stored and every partition can you see those things it arrives in order
+and those events stay in the partition and then the the partition can be
+consumed by lots of consumer groups and then in real time in a event-based
+application that can that stream of events go through
+and the application for that are many so if you wanted to do a event based
+architecture like a fraud detection system real time if you want to do live
+dashboards in power bi so and then if you have like iot
+devices it's um monitoring Telemetry and you would
+like to send that data and be consumed by dashboards pipelines and whatever
+process you have in your company so events Hub is is fit for this
+so let's get started then so I've created like a script here that I will
+Create Events Hub
+make available in my GitHub so basically the first step is let's
+sign into Azure Pro and create an event Hub so I have a link to a tutorial on
+how to do it but I'm gonna do for you step by step so I'm here in my Azure
+account so I go to create resource and you do events
+uh events Hub and then with the event hub you create
+so create event hub and then I'm just gonna use my subscription and I'm gonna do in a new
+Resource Group because at the end I'm gonna delete everything because this is just a demo so I'm just
+gonna call uh event hub
+lab I think that's okay and then the namespace it can be it's a
+unique name I'm just gonna put my name and I O at the end so I'll do it in
+Australia and the pricings here you can choose basic for this demo you should
+use standard or above because I'm gonna do a demo using the confluent Kafka
+library and then it only works if it's a standard or above
+uh throughput units one is fine and that's pretty much it uh review and
+create now it's deploying um so
+yeah it's deploy so while deploying is in progress you should take like less than a minute let's create our
+azure-eventhub demo
+um uh requirements the python packs that we're going to install so let's create a
+file called requirement Dot txt and then in this file you'll
+just add those two packages that we're gonna use for our demo for our first demo with events Hub
+Library Azure SDK python SDK the next step is just let's create like
+a python version environment so so I'll do not
+so it's created I don't need that and let's activate
+that environment um
+activate it yeah by 3.11 so and now let's install our upper grid
+pip and also let's install the requirements
+in the environment cool I've already done install cached
+done so let's see if that is already created
+yeah is created just go to the resource in the resource
+you go to event add an event Hub so in
+the what I create what is a namespace like a service but I can create as many Hub as
+I want so in Kafka terminology this is called like a topic maybe anything let's call it my topic
+and the cleanup policies delete so one thing that you can do you can cut off
+because the this event when it sends to um to the event Hub to the topic It's
+Gonna Last for one hour but if you want to have a retention policy you can do
+that later but you can do in the creation I'm just gonna show you how to do it
+so you have to have a Azure storage account so I'm gonna select one of my
+accounts I'm gonna select this one uh
+I'm just gonna create a new container called events [Music]
+events Hub and it's gonna be fine I'll create that and
+see this one and then select and that's pretty much it and then
+that's gonna be probably how it's gonna be saved for example my namespace the
+topic and by your day hour and you know
+something like that and that's pretty much it review and create it's validated and then I'm gonna
+create so so why is creating the Hub which will take a few seconds uh we're
+gonna go back to our Visual Studio code um and then create a
+producer.pi file so I'm just gonna go producer the pi
+and then I'm just gonna copy and paste codes
+that I have from Azure tutorial so
+so that's the one and you have to
+um change the event Hub name
+to to the name that I've just created so
+let's see [Music] because my [Music] um
+my screen is too big now so it's called my topic
+so that's the
+it's called my topic and the event Hub connection string is on the Hub
+I'll show you where it is so go back to the
+the namespace so overview
+it's in shared access policies and then Root Management you can add
+specifically but I'm just for demonstration purpose use my root one
+because I'm gonna in the end delete just get this connection string primer key
+here just copy can get any one of those I'm just gonna get the first one
+then go back to your python script and then you just replace that this is
+from a dry run that I did earlier today so that's done
+and then I think it's pretty much it so just looking quickly at your call electric codes uh we import a async IO
+because we are using one of the i o Library here uh just import at the top like for the
+configuration create a function called run which instantiate the producer with
+the connection strings and then start the producer and then
+create a batch and then add some events to the batch and dispatch all the
+batches and then run the async process that's pretty much it so the consumer is
+a little bit more involved because what it does it saves
+um the checkpoint uh where the consume
+the consume of the events are in the process if I go here in the
+overview so when I start consuming and then let's say that my application
+crashes I need to know where I stopped otherwise I have to go and read from the
+start so what I'm gonna do is I'm gonna start a producer at the beginning and then as I'm reading the event so I
+consume the events I'm just gonna check points and I send this checkpoint to a Azure blob storage so I'm just gonna do
+it now again I'm just gonna copy and paste from the previous
+dry run that I've done and and in addition to the end points of the events
+up here I also will need my storage account
+um let's find the container
+and the container was events are easy
+just gonna copy this name here and then put here
+and the connection string of my account
+is access Keys is the connection string
+show I'm gonna cut this part
+I'm just gonna
+copy here and
+and events have my topic it's the same I think we are good to go and the code
+is a little more involved uh you have to create like a function called on event which is a call back to
+the blob checkpoint star when you call the
+method received can you see that you can you have to pause a callable here and then I'm saying it started from position
+-1 which is the the first one in the topic and then as I received the event
+I'm gonna usually you do something with the event you can send to another servers you can send to your data Lake
+you you can stream your application you can send to another topic you can do
+whatever you want I you can send to a queue and in this
+case what I'm doing here I'm just um on these callback there are two
+parameters the partition context that you can get some metadata of the partition and also the event object
+which in this case we are just um outputing as a as a string and then
+printing out the console uh that's pretty much it to configure
+the client uh what I'm gonna change here instead of using the D4 I'm gonna create
+another um I'm gonna create another
+consumer group let me just go back to
+my event hub my topic I think I have consumer groups
+yeah I'm just gonna call it um uh azure
+yeah you can call anything so and then I'm just gonna
+do this and go back to my code
+and then call it Azure so everything else is
+all good my topic my topic so I'm gonna try to start the consumer
+first and then uh do the um
+do so later and then you can see them in action I'm just gonna
+maximize this uh clean the console I'm gonna split down to two shells
+so let me just it's a bit big here
+I'm just trying to minimize that uh
+space here clean that clean back
+so and then let's see what I have here yeah this is gonna be the
+consumer python consumer make sure that I have my
+virtual environment activated and think activate
+yeah it's all good so let's start it so python if I did everything correctly that
+should work and that
+so there is no event Loop
+I think I do that that's the producer first
+yeah yeah good so can you see now
+um let's do try to go to producer and
+let's do and let's follow up here for I in
+range let's put 100 events
+and and then I'm just gonna do
+and that's string event
+I see close that one
+and maximize that so let's send 10 events let's see
+there we go it's just like non-stop saying 10 events 100 events can
+you see how fast it is I'll send another 100. and just just streaming data so so
+what's happening here is um I'm sending data here to the partitions
+and the consumer just like real time are consuming yet uh if I go here on the
+uh here on my event Hub I can see some telemetry
+of my hub and just click here my topic
+can you see that um all the events that I sent so how many messages I send 15 or
+this is how much I sent so on the
+right now so is that the D4 less for the azure
+yeah messages it's showing here at three messages
+I think I said more than that yeah now it's coming through can you see
+203 because I sent three and then I send 200 more so that's how many methods I
+sent in going and outgoing so it's already been consumed so and then you get it throughput of
+what's saying so that's the demo of the
+uh are using the Azure SDK here I'm just using that Library here the
+confluent-kafka demo
+I'm not going to use another Library which is the event Hub Kafka so with
+that to demonstrate that events have isakafka cluster and then you can use
+any Kafka Library any language to use events Hub so it is
+a Kafka cluster so the library that I'm gonna use is the confluent Kafka so it's
+a little bit more involved so let's go step by step what we need to do what I'm gonna do I'm just gonna stop
+those uh process here because I've already demonstrated I'm
+just gonna start a new terminal session here and then I'm gonna
+um on my script here uh I'm gonna create it's a little bit
+more involved uh I'll take a little bit more time so I'm gonna create a new folder called
+fluent and then on that folder I'm gonna
+create let's go before that let's go back to our Azure and create another
+topic called Kafka topic
+um let's create another one called Kafka
+topic and this time I'm not going to capture anything so before that I need
+to remember to show you how it's saved there is one thing that I forgot to show
+you how it looks like the event that that got retained my storage account if
+you remember when I configured when I create events Hub so because in the
+Kafka it's very favorable like just after one hour my configuration everything gets deleted but if you if
+you set up a retention it saves in the Azure storage accounts all the events in
+our format by I think it is by minutes every minute so and then it
+saves here so I just want to show you because I forgot to show it before it's saved as a default
+um avra format which is a very efficient format to write but you can also uh
+saving parquet if you like yeah Kafka top is created and then I'm
+also gonna create a consumer group on that one with a different name
+so I'm gonna call it customer group uh
+gonna call it um
+Kafka consumer group I'm gonna just use this one that I wrote here so I can follow the tutorial as I
+wrote yeah so now in this folder let's create
+a python file called same producer
+dot pi and then I'm just gonna copy and paste from and then I don't need to
+write the code so and then what I'm going to change
+here is um my end point
+which is the same as here my bootstrap server
+is my name space which you can get from
+overview and then hostname
+and then it's on part 993 so the SSL certificate because I'm using
+Ubuntu that's where it's stored um and the the topic and the consumer
+group in this script you're gonna pass as a parameter that's capturing here is
+an argument so argument one and two uh so that's pretty much it to the
+producer I'm just gonna create now the
+consumer um
+so that's yeah
+and the configuration is pretty much the same with a little bit more things
+that one there is this and that's already alright and point I'm
+just gonna delete that because that's from a previous run and then I'm just gonna copy
+and that one there a URI
+so I'm just gonna double check yeah cool
+I think I've got everything I need
+um now I'm gonna split this screen here
+um maximize that thing
+and I'm just gonna I need to do a setup here before that I just remembered
+I'm just gonna make sure that I have
+um my virtual environment
+activated in both um
+yeah and then I have to create another file called setup
+setup dot uh sh which is a bash script
+and this script is here in this script for my talk
+it is yeah just gonna copy that
+I've already done on my computer I'm gonna do again
+uh just demonstrate to you guys hopefully everything goes well
+uh paper I'm just gonna check my pick if it's correct
+yeah I'm on the right environment I'm just gonna now have two CD into
+conference that's the director where things are
+and before I run a script I'm just gonna
+uh do a source and then run this at app.sh
+and I have to put my Linux password that I think I remember
+and I think that's it yeah it's done so now
+it's just like cloning and installing a few things
+okay finished I think now I'm ready to go I have all
+the bolts here but the difference is I'm just gonna do a python
+consumer and then on the consumer I need to pass
+um some parameters I'm just gonna put here on the readme you have to pass the
+the consumer group and the topic so if I go back here the topic
+um event hub his Kafka topic
+this one
+uh sorry consumer group is first so consumer group is Kafka consumer
+group and Kafka
+topic hopefully everything works fingers
+crossed if I turn everything correctly uh
+so there yeah I think there is not a partition
+I think there is not um oh it's underscore
+I made a mistake here so it should work now
+yeah it's now listening so let's start the producer
+so this script I think it sends a hundred the
+items so producer.py
+and then it's gonna be half underscore topic
+so fingers crossed one two three so can you see I sent an event it's you
+see that it looks like this one's a bit faster than the Azure one so let's go to
+the producer I think less than like a hundred events
+uh just trying to find it yeah it's here
+I'm saying 11 let's say a hundred and see how it looks so I'm just saying
+all the other events and then bank it's like really fast really fast
