@@ -13,3 +13,8 @@ resources:
             base_parameters:
               claims_volume_path: /Volumes/${var.catalog}/${resources.schemas.landing.name}/${resources.volumes.claims_volume.name}
               target_table: ${var.catalog}.${resources.schemas.bronze.name}.claim_images
+              # Part 8 logging: where log rows go, plus job context (dynamic value references, filled at run time).
+              log_table: ${var.catalog}.${resources.schemas.ops.name}.app_logs
+              job_id: "{{job.id}}"
+              job_run_id: "{{job.run_id}}"
+              task_key: "{{task.name}}"

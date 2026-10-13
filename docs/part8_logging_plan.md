@@ -193,7 +193,7 @@
 
 **Files:** Modify `resources/unity_catalog.yml`, `src/object_storage/claim_images.py` (part 3), `resources/ingest_claim_images.job.yml` (part 3).
 
-- [ ] **Step 2.1: Add the `ops` schema**
+- [x] **Step 2.1: Add the `ops` schema**
 
   **Do:** in `resources/unity_catalog.yml`, after the `source` schema:
 
@@ -206,7 +206,7 @@
         comment: Operational data - application logs (app_logs)
   ```
 
-- [ ] **Step 2.2: Use the logger in the notebook**
+- [x] **Step 2.2: Use the logger in the notebook**
 
   **Do:** in `src/object_storage/claim_images.py`:
 
@@ -249,15 +249,17 @@
 
   ```python
   log.info("ingesting %s into %s", SOURCE_PATH, TARGET_TABLE)
-  query = (
-      ...unchanged...
-  )
   try:
+      query = (
+          ...unchanged, indented...
+      )
       query.awaitTermination()
   except Exception:
-      log.exception("claim image ingestion failed")
+      log.exception("claim image ingestion failed")  # ERROR, so it is written to the log table at once
       raise
   ```
+
+  The whole stream is inside `try`, because a bad path or option fails at `.toTable(...)`, before `awaitTermination()`.
 
   d. Replace the three `print`s in the last cell:
 
@@ -268,7 +270,7 @@
   flush_logs()
   ```
 
-- [ ] **Step 2.3: Pass the log table and job context from the job**
+- [x] **Step 2.3: Pass the log table and job context from the job**
 
   **Do:** in `resources/ingest_claim_images.job.yml`, add to `base_parameters`:
 
@@ -279,7 +281,7 @@
                 task_key: "{{task.name}}"
   ```
 
-- [ ] **Step 2.4: Validate**
+- [x] **Step 2.4: Validate**
 
   `databricks bundle validate --profile DEFAULT`. **Expect:** `Validation OK!`. Then `git status` (3 modified files). You commit.
 
