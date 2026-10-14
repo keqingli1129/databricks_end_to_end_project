@@ -1,0 +1,261 @@
+today I'd like to continue that bricks
+AET bundles but uh the third one that
+I'm doing and this video will be focused
+on adding cicd to my project the one
+that I've done on the previous video
+that I'm going to put a card here you
+can watch so the first one I did more
+just to show you how that works how to
+authenticate with azard dat brick CLI
+and today I'm going to create a a
+service principle that's going to
+control my workspace and then they'll be
+able to also deploy um
+dabs so let's get started the first step
+is to create a Azure active directory or
+entra ID identity what we call like an
+application or you can call it a service
+principle so I'm going to create a
+service principle that's going to be
+with limited scope over the workspace
+that I'm going to deploy my datab bricks
+asset bundle
+and after that I'm just going to
+associate inar bricks Management console
+the service principle to that workspace
+and Grant some rights and then I will
+generate a token and with that I can
+create my cicd in GitHub and automate
+all the process so let's do the first
+step which is create a
+Azure service
+principle Azure enter identity so the
+first one is to to get my Resource Group
+in a variable okay I need to give a name
+and the name of the resource Group
+is uh let me open
+my
+aure and it's that
+workspace and the resource Group is this
+one let me just reply here on
+my that's this one
+and then now I copy
+the another command that I'm going to
+describe to you so this is using Azure
+CLI so I'm doing a i at service
+principal create for arbach I give it a
+name uh the name that I'm going to give
+is to do aate up
+cicd demo
+and the role is going to be contributor
+and the scope is going to be that um
+Resource Group which my workspace is
+located let's do it so that's going to
+uh return uh
+those codes and ID just copy that to a
+safe
+place so the next
+step that a
+bricks launch the workspace and that's
+very important that to follow
+my tutorial you need to be a Azure
+administrator otherwise you would not
+have access to the dollar bricks account
+console to access you click here on your
+workspace and then click management
+accounts if you are not a admin that
+will not
+appear and then you have to go to user
+management and then service principle
+add service
+principle you put Microsoft entro ID
+managed and then that ID
+here is this ID
+here and the name could be any name but
+let's give the same name that we gave
+here let me see if I copy
+everything so it starts with 33b
+finishes with
+686 686 33 B okay so that's
+correct
+add good now um you click here again and
+let's generate a o secret because we are
+doing going to do a machine to machine
+authentication to generate the the
+personal access token so let's click
+generate secret copy this secret
+here and again put in a safe
+place and also copy the client ID which
+is which is the same but let's copy
+here it's already copy it's the same
+this one
+here cool um now go
+to Works
+spaces pick the workspace that we are
+going to do the one it's the only one we
+have in this
+account and then go to
+permissions click add
+permissions service principle you're
+going to choose the
+dab cic demo can you see that's the yeah
+put as a
+admin
+save now on
+your open the data bricks configuration
+profile on your computer which is
+located on on
+the your home directory and the file
+called
+Data
+bricks
+CFG so and then create a profile with
+three variables host is going to be
+your
+workspace uh URL which you can
+find here this one
+then the ID is
+the uh client ID that we saved on a safe
+place which is called the app ID on once
+you create the service principle let's
+put it here and the secret is the secret
+of the oo that we just
+generated with that I can authenticate
+it with my I your CLI so to see if we we
+are authenticated let's do
+some commands here
+to to confirm so this command
+here which is dat bricks Al profiles
+check if the profiles are configure
+correctly so it is configured correctly
+the do
+sp now let's see if the environment
+variables for that profile is correct
+yeah so I need to put the dash dash
+profile and then that's saying that's
+say off machine to machine
+authentication so another thing that we
+can do is let's validate the bundle
+because when it validates we'll tell
+which User it's uh
+connected so let's go and copy
+this just to be a little bit
+faster yeah it's validating can you see
+that it's validating to this user which
+which means this this user is uh
+authenticated so let's generate a what I
+call personal access token for that user
+which is the service principle and then
+the command is data
+braks and
+tokens then
+create then
+comment so the comment that I'm going to
+give is just call it tab
+uh
+cicd and the profile that I'm using
+is
+uhp and then I think that's
+it and then I'm not going to give an
+expiration date uh let's say usually
+when you do a service princip you don't
+want to this to expire and then once you
+do that it creates a token so copy that
+and again put a safe place the token is
+this value here so we are almost there
+so we need two more steps so the next
+step is go you have to have a uh data
+breaks not that bricks
+GitHub repository I already have
+one I think on the on the previous um
+tutorial we created one I'm here on my
+repository you have to go in settings
+and then go to secrets and
+variables actions and create a new
+secret I already have one but because i'
+I've used that in different runs but
+with a different service principal token
+I'm just going to update that but these
+token CET should be called s token so
+I'm just going to put that value that I
+just
+saved so it's talk with d a
+always yeah it's saved
+so
+now I can create
+a folder
+called
+GitHub and then inside GitHub I create
+another folder called
+workflows with
+that inside there I can create a file
+called
+deploy
+prod do
+Emo and then in this file I'm just going
+to copy and
+paste I'm creating this pipeline called
+Pro deployment concurrence is one make
+sure that
+doesn't have
+concurrence and then that's going to be
+trigger on push to master I'm on the
+master Branch here just for the purpose
+I'm not teaching here a get strategy
+here so the first job is going
+to do anut it's going to check out
+install python install the package and
+test after that it's going to push to
+bundle and I'm just going to use that
+secret token here and that's going to
+deploy to prod so we need to also come
+here thata bricks and create a
+new Target which is
+prod you can just do after the dev one
+that we did on the other
+video make sure everything is
+aligned and the workspace head is the
+same that's going to deoy to the work um
+to the folder path of the current user
+which is the service principle and then
+you have to have a run ass because we're
+going to deploy jobs and on prod it's a
+requirement on da you don't have to have
+it
+usually put on the name of the person
+deploying or the person
+authenticated in our case
+is that same code which you can find
+here and that I think we are ready to
+deploy hope everything
+works uh the file looks fine and this
+one as
+well let's see if it works so let's
+commit to
+g go to actions it
+started first it's going to
+test install the
+packages and set up the P environment
+test complete so pass and now it's going
+to deploy the bundle it's going to first
+authenticate it's
+authenticated now it's deploying the
+bundle on that user here
+yeah it's all green let's check if it
+deployed
+so workflow was deployed on D C ICD
+demo and
+um also the workpace
+I have
+users is the want to start with three
+I've done other examples before and the
+python package is
+here
+artifacts the wheel is deployed here so
+it's all good I'm not going to do the
+run for the job because going to take a
+y to start the cluster but you can
+change your bundle uh and then do um run
+like a bundle run of the job to see if
+that triggers
+correctly
