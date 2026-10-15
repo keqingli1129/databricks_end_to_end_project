@@ -1,5 +1,6 @@
 """Silver -> gold: aggregates and pre-joined materialized views for BI and apps (see docs/transcript_4.txt)."""
 
+from databricks.sdk import WorkspaceClient
 from geopy.distance import geodesic
 from pyspark import pipelines as dp
 from pyspark.sql import functions as F
@@ -99,6 +100,19 @@ CLAIM_CHECKS_SCHEMA = """
 """
 
 
+def _claim_image_predictions():
+    """The ML job's predictions (part 5), or no rows yet on a fresh workspace.
+
+    The ML job writes this table but needs silver from this pipeline, so on a new workspace it can't exist before
+    the first update. Without predictions, severity_match is NULL ("not run"); the next update after the ML job fills it.
+    """
+    table = f"{GOLD}.claim_image_predictions"
+    # Unity Catalog's REST API: spark.catalog.tableExists is blocked inside pipelines (PY4J_BLOCKED_API).
+    if WorkspaceClient().tables.exists(table).table_exists:
+        return spark.read.table(table).select("image_name", F.col("damage_prediction").alias("predicted_damage"))
+    return spark.createDataFrame([], "image_name STRING, predicted_damage STRING")
+
+
 @dp.materialized_view(
     name=f"{GOLD}.claim_checks",
     comment="One row per claim with the automatic claim checks and the resulting status (auto_approved / needs_review).",
@@ -111,9 +125,7 @@ def claim_checks():
     photos = (
         spark.read.table("claim_images_metadata").groupBy("claim_no").agg(F.first("image_name").alias("image_name"))
     )
-    predictions = spark.read.table(f"{GOLD}.claim_image_predictions").select(
-        "image_name", F.col("damage_prediction").alias("predicted_damage")
-    )
+    predictions = _claim_image_predictions()
     checked = (
         claims.join(photos, "claim_no", "left")
         .join(predictions, "image_name", "left")

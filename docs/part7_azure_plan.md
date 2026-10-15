@@ -497,8 +497,8 @@ SELECT timestamp, level, message FROM event_log('<gateway pipeline id>')
 WHERE level IN ('ERROR', 'WARN') ORDER BY timestamp DESC LIMIT 20;
 ```
 
-- [ ] **9.5** `databricks bundle run cdc_ingestion --profile azure`. The first run loads a snapshot of the 3 tables.
-- [ ] **9.6** Check bronze: counts, plus the columns and types silver expects:
+- [x] **9.5** `databricks bundle run cdc_ingestion --profile azure`. The first run loads a snapshot of the 3 tables.
+- [x] **9.6** Check bronze: counts, plus the columns and types silver expects:
 
 ```sql
 SELECT (SELECT COUNT(*) FROM <catalog>.dev_<user>_bronze.customer),   -- 7000
@@ -518,7 +518,7 @@ DESCRIBE TABLE <catalog>.dev_<user>_bronze.claim;
 **Files:**
 - Create: `src/source_database/azure/changes.sql`
 
-- [ ] **10.1** Create `src/source_database/azure/changes.sql`:
+- [x] **10.1** Create `src/source_database/azure/changes.sql`:
 
 ```sql
 -- Part 7 (Azure): the transcript's incremental test. Run in VS Code on database `claims`.
@@ -540,8 +540,8 @@ DELETE FROM dbo.customer WHERE customer_id = 'C007000';
 -- the policy row appears, the claim is 'Minor Damage', the customer returns no rows (6999 / 12001 / 13000).
 ```
 
-- [ ] **10.2** Run the "before" checks in Databricks, then the file in VS Code.
-- [ ] **10.3** With the gateway running, `databricks bundle run cdc_ingestion --profile azure`, then re-run the checks.
+- [x] **10.2** Run the "before" checks in Databricks, then the file in VS Code.
+- [x] **10.3** With the gateway running, `databricks bundle run cdc_ingestion --profile azure`, then re-run the checks.
 
 **Check:** 6999 / 12001 / 13000, with `CLM00000003` = "Minor Damage". **Part 2 on Azure is done.** Run the pause checklist (Task 14) if you're stopping here.
 
@@ -549,7 +549,7 @@ DELETE FROM dbo.customer WHERE customer_id = 'C007000';
 
 ### Task 11: Parts 1, 3 and 4 on Azure
 
-- [ ] **11.1** Kafka secrets (the bundle created scope `kafka_azure_dev`). Paste the same Confluent values as in `kafka_dev`:
+- [x] **11.1** Kafka secrets (the bundle created scope `kafka_azure_dev`). Paste the same Confluent values as in `kafka_dev`:
 
 ```bash
 databricks secrets put-secret kafka_azure_dev bootstrap_servers --profile azure
@@ -557,8 +557,8 @@ databricks secrets put-secret kafka_azure_dev api_key --profile azure
 databricks secrets put-secret kafka_azure_dev api_secret --profile azure
 ```
 
-- [ ] **11.2** `databricks bundle run telematics_simulator --profile azure`, then `databricks bundle run telematics_ingestion --profile azure`. Check that `bronze.telematics` has rows. Both clouds read the same topic, so AWS sees these events on its next run too.
-- [ ] **11.3** Upload the part 3 files (prepared locally in part 3) to the Azure volumes. Run `ls data/object_storage/` first to confirm the folder names:
+- [x] **11.2** `databricks bundle run telematics_simulator --profile azure`, then `databricks bundle run telematics_ingestion --profile azure`. Check that `bronze.telematics` has rows. Both clouds read the same topic, so AWS sees these events on its next run too.
+- [x] **11.3** Upload the part 3 files (prepared locally in part 3) to the Azure volumes. Run `ls data/object_storage/` first to confirm the folder names:
 
 ```bash
 databricks fs cp -r data/object_storage/prepared/ dbfs:/Volumes/<catalog>/dev_<user>_landing/claims/metadata/ --profile azure
@@ -567,7 +567,8 @@ databricks fs cp -r data/object_storage/<training images folder>/ dbfs:/Volumes/
 ```
 
   (Use the same source folders as part 3's plan, `docs/part3_object_storage_plan.md`.)
-- [ ] **11.4** With the gateway running: `databricks bundle run smart_claims_end_to_end --profile azure`. It runs all four ingestion tasks, then transformations.
+- [x] **11.4** With the gateway running: `databricks bundle run smart_claims_end_to_end --profile azure`. It runs all four ingestion tasks, then transformations.
+  > **2026-10-15:** the first run failed in `transform`: `gold.claim_checks` read `gold.claim_image_predictions`, which the ML job writes, but the ML job needs silver from this pipeline, a deadlock on any fresh workspace. Fixed in `silver_to_gold.py` (`_claim_image_predictions()`: empty predictions while the table doesn't exist, checked with the SDK's `tables.exists` because `spark.catalog.tableExists` is blocked in pipelines). `severity_match` stays NULL until Task 12 has run and `transformations` runs again. Result: silver 13000/12001/6999, gold `claim_checks` 12999 (5038 auto_approved, 7961 needs_review).
 
 **Check:** silver and gold have rows, and the data-quality numbers show up in `event_log('<transformations pipeline id>')`, as on AWS. `gold.claim_checks` has 13,000 rows (minus claims whose customer was deleted).
 
