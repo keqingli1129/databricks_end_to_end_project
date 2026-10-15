@@ -1,0 +1,53 @@
+# Lint, test, then deploy the bundle to azure_prod as service principal e2e-deployer (docs/part9_cicd_plan.md).
+# Auth: GitHub OIDC token -> Databricks workload identity federation (policy github-azure-prod). No stored secrets.
+name: Deploy azure_prod
+
+on:
+  workflow_dispatch:
+
+# One deploy at a time; a newer run waits instead of racing the older one.
+concurrency:
+  group: azure-prod
+  cancel-in-progress: false
+
+permissions:
+  id-token: write # lets the jobs request the OIDC token
+  contents: read
+
+env:
+  DATABRICKS_AUTH_TYPE: github-oidc
+  DATABRICKS_HOST: ${{ vars.DATABRICKS_HOST }}
+  DATABRICKS_CLIENT_ID: ${{ vars.DATABRICKS_CLIENT_ID }}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    environment: azure-prod # part of the token's subject; must match the federation policy
+    env:
+      # Databricks Connect runs the tests on serverless compute (conftest.py would fall back to it too).
+      DATABRICKS_SERVERLESS_COMPUTE_ID: auto
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+      - run: uv sync --no-dev --group test --frozen
+      - run: uv run --no-dev --group test ruff check .
+      - run: uv run --no-dev --group test ruff format --check .
+      - run: uv run --no-dev --group test pytest # as e2e-deployer
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    environment: azure-prod
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6 # the bundle builds the wheel with `uv build --wheel`
+        with:
+          python-version: "3.12"
+      - uses: databricks/setup-cli@main
+        with:
+          version: 1.15.0 # same CLI as local (`databricks --version`)
+      - run: databricks current-user me # who we are: the application id
+      - run: databricks bundle validate -t azure_prod
+      - run: databricks bundle deploy -t azure_prod

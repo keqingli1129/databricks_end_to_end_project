@@ -262,7 +262,7 @@ databricks warehouses list --profile azure          # note the starter warehouse
 
 App names and Lakebase database IDs **don't allow underscores**, so `e2e-claims-${bundle.target}` would break for `azure_dev`. A new variable, `name_suffix`, keeps the AWS names exactly as they are.
 
-- [ ] **7.1** In `databricks.yml`:
+- [x] **7.1** In `databricks.yml`:
   - Add variables:
 
 ```yaml
@@ -314,7 +314,7 @@ App names and Lakebase database IDs **don't allow underscores**, so `e2e-claims-
           warehouse: <exact name from Task 5.3>
 ```
 
-- [ ] **7.2** `resources/ingest_db_cdc_insurance.pipeline.yml`: replace the top-level `resources:` with a targets wrapper. The body is unchanged, only indented:
+- [x] **7.2** *(deferred, see note)* `resources/ingest_db_cdc_insurance.pipeline.yml`: replace the top-level `resources:` with a targets wrapper. The body is unchanged, only indented:
 
 ```yaml
 # CDC ingestion (see docs/transcript_2.txt): applies inserts/updates/deletes from the source schema
@@ -345,8 +345,9 @@ targets:
         cdc_ingestion: *aws_cdc_ingestion
 ```
 
-- [ ] **7.3** `resources/seed_source_database.job.yml`: the same wrapper, with anchor `&aws_seed_source_database` on `seed_source_database` under `dev`, and `seed_source_database: *aws_seed_source_database` under `prod`. Add the comment `# AWS targets only: on Azure the source is Azure SQL (src/source_database/azure/).`
-- [ ] **7.4** `resources/damage_classifier.yml`: cut the `model_serving_endpoints:` block out of `resources:`. Append it under a wrapper, with `entity_version: ${var.serving_model_version}`:
+  > **Deferred 2026-10-14 (part 9, option A):** for now every target, Azure included, uses the AWS-style stand-in (Python pipeline + seed job), so this file needs no wrapper and stays unchanged. Do this step when `azure_dev` switches to real Lakeflow Connect (Task 8); then list `azure_prod` in whichever wrapper it should use.
+- [x] **7.3** *(deferred, see note above)* `resources/seed_source_database.job.yml`: the same wrapper, with anchor `&aws_seed_source_database` on `seed_source_database` under `dev`, and `seed_source_database: *aws_seed_source_database` under `prod`. Add the comment `# AWS targets only: on Azure the source is Azure SQL (src/source_database/azure/).`
+- [x] **7.4** `resources/damage_classifier.yml`: cut the `model_serving_endpoints:` block out of `resources:`. Append it under a wrapper, with `entity_version: ${var.serving_model_version}`:
 
 ```yaml
 # The endpoint needs a model version that exists, so it is per target: a new workspace deploys it only after
@@ -369,12 +370,12 @@ targets:
       model_serving_endpoints: *serving_endpoints
 ```
 
-- [ ] **7.5** `resources/claims_app.yml`:
+- [x] **7.5** `resources/claims_app.yml`:
   - Keep the `variables:` block at the top.
   - Wrap the whole `resources:` block as `targets: dev: resources: &claims_app_resources …` and `prod: resources: *claims_app_resources`.
   - Change `database_id: e2e-claims-${bundle.target}` to `database_id: e2e-claims-${var.name_suffix}`, and the app's `name: e2e-claims-${bundle.target}` to `name: e2e-claims-${var.name_suffix}`. For `dev`/`prod` these resolve to the same names as today.
   - Add a header comment: "Needs gold tables and the endpoint to exist, so it is per target (Azure: Task 13)."
-- [ ] **7.6** Validate both clouds' configs (no deploy):
+- [x] **7.6** Validate both clouds' configs (no deploy):
 
 ```bash
 databricks bundle validate -t dev --profile DEFAULT
@@ -383,7 +384,7 @@ databricks bundle summary -t dev --profile DEFAULT | grep -E "cdc_ingestion|seed
 ```
 
   If validate rejects anchors or `targets:` in an included file, stop and choose a fallback together (for example, writing the `prod` copy out in full).
-- [ ] **7.7** Prove AWS is unchanged. Bundle planning reads the synced tables, so enable the Lakebase compute first, then disable it again:
+- [x] **7.7** Prove AWS is unchanged. Bundle planning reads the synced tables, so enable the Lakebase compute first, then disable it again:
 
 ```bash
 databricks postgres update-endpoint projects/smart-claims-dev/branches/production/endpoints/primary spec.disabled --json '{"spec": {"disabled": false}}' --profile DEFAULT

@@ -329,7 +329,7 @@ UV_PROJECT_ENVIRONMENT=/tmp/ci-venv env -u PYTHONPATH uv run --no-dev --group te
 - **`run_as`**: jobs and pipelines run as `e2e-deployer`, never as a person who might leave.
 - **`permissions`**: the SP manages everything; you can view and run, but changes go through git.
 
-- [ ] **8.1** Set the target:
+- [x] **8.1** Set the target (done 2026-10-14 with application id `4553f370-2290-4d8d-ba5d-c022b6f80672` and `keqingli1129@gmail.com`):
 
 ```yaml
   # Deployed only by GitHub Actions (.github/workflows/deploy-azure-prod.yml) as service principal e2e-deployer.
@@ -351,17 +351,17 @@ UV_PROJECT_ENVIRONMENT=/tmp/ci-venv env -u PYTHONPATH uv run --no-dev --group te
         level: CAN_VIEW
 ```
 
-- [ ] **8.2** Resources that are **per target** (part 7's wrappers) only exist in `azure_prod` if it's listed in their file:
+- [x] **8.2** *(decided 2026-10-14: option A, all targets share the CDC stand-in; endpoint and app stay `dev`/`prod` only)* Resources that are **per target** (part 7's wrappers) only exist in `azure_prod` if it's listed in their file:
   - `cdc_ingestion`: `smart_claims_end_to_end` refers to it, so `azure_prod` **must** get it. Either add `azure_prod` to `resources/azure_cdc_ingestion.yml` (real gateway: then turn on cluster creation in 2.2 and `GRANT USE CONNECTION ON CONNECTION azure_sql_claims TO \`<application id>\``), or to the AWS-style stand-in wrapper (Python pipeline + seed job). For a first CI run, the stand-in is simpler.
   - Serving endpoint, claims app, Lakebase, synced tables: **leave `azure_prod` out** for now. The endpoint needs a model version that exists in prod (after `train_and_register` has run there), and the app needs gold tables. Adding them later is just another commit, deployed by CI.
-- [ ] **8.3** Validate as yourself (validate doesn't need the SP's rights):
+- [x] **8.3** Validate as yourself (validate doesn't need the SP's rights):
 
 ```bash
 databricks bundle validate -t azure_prod --profile azure
 databricks bundle validate -t dev --profile DEFAULT     # AWS still fine
 ```
 
-**Check:** both validate with no errors; the `azure_prod` output shows the root path under the application id.
+**Check:** both validate with no errors; the `azure_prod` output shows the root path under the application id. Validating as yourself prints one **recommendation** ("permissions should include the current deployment identity"): expected, because in CI the deployer is `e2e-deployer`, which is listed. Don't add yourself with `CAN_MANAGE`.
 
 ---
 
@@ -372,7 +372,7 @@ databricks bundle validate -t dev --profile DEFAULT     # AWS still fine
 
 **Why:** the transcript's file: a test job, then a deploy job, one run at a time. Start with **only the manual trigger** (Task 11 adds `push`), so nothing deploys until we've watched it work once.
 
-- [ ] **9.1** Create the file:
+- [x] **9.1** Create the file (done 2026-10-14; the real file adds `DATABRICKS_SERVERLESS_COMPUTE_ID: auto` to the test job and `--group test` to each `uv run`, so it is the source of truth):
 
 ```yaml
 # Lint, test, then deploy the bundle to azure_prod as service principal e2e-deployer (docs/part9_cicd_plan.md).
@@ -427,7 +427,7 @@ jobs:
       - run: databricks bundle deploy -t azure_prod
 ```
 
-- [ ] **9.2** Notes to read before running:
+- [x] **9.2** Notes to read before running:
   - `vars.*` are the environment variables from 4.4; they're available because the jobs declare `environment: azure-prod`.
   - `DATABRICKS_HOST` must equal the target's `workspace.host`, or the CLI refuses.
   - `uv run --no-dev` stops uv from installing the `dev` group again on `run`.
