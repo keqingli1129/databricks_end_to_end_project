@@ -2,6 +2,8 @@
 # Lakebase: the project smart-claims-dev belongs to the separate smart_claims_dev bundle (Free Edition allows one).
 # We only reference its production branch and own our database e2e_claims_<target> inside it. Destroying smart_claims_dev
 # deletes the project and our database with it.
+# Needs gold tables and the serving endpoint to exist, so it is per target (Azure: part 7 Task 13).
+# The resources are written once under dev (YAML anchor) and reused by prod (alias).
 
 variables:
   lakebase_branch:
@@ -11,90 +13,94 @@ variables:
     description: The branch's read-write compute; the app asks it for OAuth tokens (not injected by the postgres resource).
     default: projects/smart-claims-dev/branches/production/endpoints/primary
 
-resources:
-  postgres_databases:
-    e2e_claims_database:
-      parent: ${var.lakebase_branch}
-      # The target is part of the name: dev and prod share the one project, and dev mode doesn't prefix databases.
-      database_id: e2e-claims-${bundle.target}
-      postgres_database: e2e_claims_${bundle.target}
-      # Owner: your Postgres role in the branch (it also owns smart_claims_dev's database).
-      role: ${var.lakebase_branch}/roles/${workspace.current_user.short_name}
+targets:
+  dev:
+    resources: &claims_app_resources
+      postgres_databases:
+        e2e_claims_database:
+          parent: ${var.lakebase_branch}
+          # The target is part of the name: dev and prod share the one project, and dev mode doesn't prefix databases.
+          database_id: e2e-claims-${var.name_suffix}
+          postgres_database: e2e_claims_${bundle.target}
+          # Owner: your Postgres role in the branch (it also owns smart_claims_dev's database).
+          role: ${var.lakebase_branch}/roles/${workspace.current_user.short_name}
 
-  postgres_synced_tables:
-    claim_checks_synced:
-      # The UC name of the synced table; in Postgres it is <gold schema>.claim_checks_pg in database e2e_claims_<target>.
-      synced_table_id: ${var.catalog}.${resources.schemas.gold.name}.claim_checks_pg
-      source_table_full_name: ${var.catalog}.${resources.schemas.gold.name}.claim_checks
-      primary_key_columns: [claim_no]
-      scheduling_policy: CONTINUOUS
-      branch: ${var.lakebase_branch}
-      postgres_database: ${resources.postgres_databases.e2e_claims_database.postgres_database}
-      create_database_objects_if_missing: true
-      new_pipeline_spec:
-        storage_catalog: ${var.catalog}
-        storage_schema: ${resources.schemas.gold.name}
-        # Automatic (read-time) change data feed from a materialized view needs the PREVIEW channel.
-        pipeline_channel: PREVIEW
+      postgres_synced_tables:
+        claim_checks_synced:
+          # The UC name of the synced table; in Postgres it is <gold schema>.claim_checks_pg in database e2e_claims_<target>.
+          synced_table_id: ${var.catalog}.${resources.schemas.gold.name}.claim_checks_pg
+          source_table_full_name: ${var.catalog}.${resources.schemas.gold.name}.claim_checks
+          primary_key_columns: [claim_no]
+          scheduling_policy: CONTINUOUS
+          branch: ${var.lakebase_branch}
+          postgres_database: ${resources.postgres_databases.e2e_claims_database.postgres_database}
+          create_database_objects_if_missing: true
+          new_pipeline_spec:
+            storage_catalog: ${var.catalog}
+            storage_schema: ${resources.schemas.gold.name}
+            # Automatic (read-time) change data feed from a materialized view needs the PREVIEW channel.
+            pipeline_channel: PREVIEW
 
-    policy_lookup_synced:
-      # The app's policy lookup when a customer submits a claim; <gold schema>.policy_lookup_pg in Postgres.
-      synced_table_id: ${var.catalog}.${resources.schemas.gold.name}.policy_lookup_pg
-      source_table_full_name: ${var.catalog}.${resources.schemas.gold.name}.policy_lookup
-      primary_key_columns: [policy_no]
-      scheduling_policy: CONTINUOUS
-      branch: ${var.lakebase_branch}
-      postgres_database: ${resources.postgres_databases.e2e_claims_database.postgres_database}
-      create_database_objects_if_missing: true
-      # Share claim_checks_synced's continuous pipeline (bin-packing) instead of running a second one.
-      existing_pipeline_id: ${resources.postgres_synced_tables.claim_checks_synced.status.pipeline_id}
+        policy_lookup_synced:
+          # The app's policy lookup when a customer submits a claim; <gold schema>.policy_lookup_pg in Postgres.
+          synced_table_id: ${var.catalog}.${resources.schemas.gold.name}.policy_lookup_pg
+          source_table_full_name: ${var.catalog}.${resources.schemas.gold.name}.policy_lookup
+          primary_key_columns: [policy_no]
+          scheduling_policy: CONTINUOUS
+          branch: ${var.lakebase_branch}
+          postgres_database: ${resources.postgres_databases.e2e_claims_database.postgres_database}
+          create_database_objects_if_missing: true
+          # Share claim_checks_synced's continuous pipeline (bin-packing) instead of running a second one.
+          existing_pipeline_id: ${resources.postgres_synced_tables.claim_checks_synced.status.pipeline_id}
 
-  apps:
-    claims_app:
-      # Dev mode doesn't prefix app names, so the target keeps dev and prod apart.
-      name: e2e-claims-${bundle.target}
-      description: "Part 6b: submit claims (customer mode) and review them (admin mode)."
-      source_code_path: ../src/claims_app
-      # Instead of an app.yaml: here ${...} works, which the per-target schema name needs.
-      config:
-        # The flags behind the Databricks Apps proxy (found in smart_claims_dev's app.yaml):
-        # - no websocket compression: the proxy mishandles it, and the page drops and reconnects in a loop;
-        # - no XSRF check (and so no CORS, which Streamlit requires with it): its token doesn't survive the proxy,
-        #   and photo uploads fail with a 400. Databricks Apps already signs every user in before the app.
-        command:
-          - streamlit
-          - run
-          - app.py
-          - --server.enableWebsocketCompression=false
-          - --server.enableXsrfProtection=false
-          - --server.enableCORS=false
-        env:
-          - name: SYNCED_SCHEMA  # the Postgres schema of claim_checks_pg / policy_lookup_pg
-            value: ${resources.schemas.gold.name}
-          - name: LAKEBASE_ENDPOINT  # for w.postgres.generate_database_credential
-            value: ${var.lakebase_endpoint}
-          - name: SERVING_ENDPOINT
-            value_from: damage-endpoint
-          - name: CLAIMS_VOLUME  # catalog.schema.volume of the claims photos
-            value_from: claims-volume
-      resources:
-        - name: postgres  # injects the PG* connection variables (but not LAKEBASE_ENDPOINT, see config)
-          postgres:
-            branch: ${var.lakebase_branch}
-            database: ${var.lakebase_branch}/databases/${resources.postgres_databases.e2e_claims_database.database_id}
-            permission: CAN_CONNECT_AND_CREATE
-        - name: damage-endpoint
-          serving_endpoint:
-            name: ${resources.model_serving_endpoints.claims_damage_level_endpoint.name}
-            permission: CAN_QUERY
-        # WRITE VOLUME doesn't include READ VOLUME: upload photos (customer mode) and show them (admin mode).
-        - name: claims-volume
-          uc_securable:
-            securable_full_name: ${var.catalog}.${resources.schemas.landing.name}.${resources.volumes.claims_volume.name}
-            securable_type: VOLUME
-            permission: WRITE_VOLUME
-        - name: claims-volume-read
-          uc_securable:
-            securable_full_name: ${var.catalog}.${resources.schemas.landing.name}.${resources.volumes.claims_volume.name}
-            securable_type: VOLUME
-            permission: READ_VOLUME
+      apps:
+        claims_app:
+          # Dev mode doesn't prefix app names, so the target keeps dev and prod apart.
+          name: e2e-claims-${var.name_suffix}
+          description: "Part 6b: submit claims (customer mode) and review them (admin mode)."
+          source_code_path: ../src/claims_app
+          # Instead of an app.yaml: here ${...} works, which the per-target schema name needs.
+          config:
+            # The flags behind the Databricks Apps proxy (found in smart_claims_dev's app.yaml):
+            # - no websocket compression: the proxy mishandles it, and the page drops and reconnects in a loop;
+            # - no XSRF check (and so no CORS, which Streamlit requires with it): its token doesn't survive the proxy,
+            #   and photo uploads fail with a 400. Databricks Apps already signs every user in before the app.
+            command:
+              - streamlit
+              - run
+              - app.py
+              - --server.enableWebsocketCompression=false
+              - --server.enableXsrfProtection=false
+              - --server.enableCORS=false
+            env:
+              - name: SYNCED_SCHEMA  # the Postgres schema of claim_checks_pg / policy_lookup_pg
+                value: ${resources.schemas.gold.name}
+              - name: LAKEBASE_ENDPOINT  # for w.postgres.generate_database_credential
+                value: ${var.lakebase_endpoint}
+              - name: SERVING_ENDPOINT
+                value_from: damage-endpoint
+              - name: CLAIMS_VOLUME  # catalog.schema.volume of the claims photos
+                value_from: claims-volume
+          resources:
+            - name: postgres  # injects the PG* connection variables (but not LAKEBASE_ENDPOINT, see config)
+              postgres:
+                branch: ${var.lakebase_branch}
+                database: ${var.lakebase_branch}/databases/${resources.postgres_databases.e2e_claims_database.database_id}
+                permission: CAN_CONNECT_AND_CREATE
+            - name: damage-endpoint
+              serving_endpoint:
+                name: ${resources.model_serving_endpoints.claims_damage_level_endpoint.name}
+                permission: CAN_QUERY
+            # WRITE VOLUME doesn't include READ VOLUME: upload photos (customer mode) and show them (admin mode).
+            - name: claims-volume
+              uc_securable:
+                securable_full_name: ${var.catalog}.${resources.schemas.landing.name}.${resources.volumes.claims_volume.name}
+                securable_type: VOLUME
+                permission: WRITE_VOLUME
+            - name: claims-volume-read
+              uc_securable:
+                securable_full_name: ${var.catalog}.${resources.schemas.landing.name}.${resources.volumes.claims_volume.name}
+                securable_type: VOLUME
+                permission: READ_VOLUME
+  prod:
+    resources: *claims_app_resources

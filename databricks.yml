@@ -28,8 +28,21 @@ variables:
     description: SQL warehouse for SQL tasks (the seed job)
     lookup:
       warehouse: Serverless Starter Warehouse
+  serving_model_version:
+    description: Version of the damage classifier the serving endpoint serves (versions are per workspace)
+    default: "2"
+  name_suffix:
+    description: Target name without underscores, for app names and Lakebase database ids
+    default: dev
+  gateway_driver_node_type:
+    description: Lakeflow Connect gateway driver VM (needs at least 8 cores). Azure targets only.
+    default: Standard_D8ds_v5
+  gateway_node_type:
+    description: Lakeflow Connect gateway worker VM. Azure targets only.
+    default: Standard_D4ds_v5
 
 targets:
+  # --- AWS (Free Edition, host dbc-b5c9918e-c2d2) ---
   dev:
     # The default target uses 'mode: development' to create a development copy.
     # - Deployed resources get prefixed with '[dev my_user_name]'
@@ -51,6 +64,36 @@ targets:
     variables:
       catalog: e2e_prod
       schema: prod
+      name_suffix: prod
     permissions:
       - user_name: keqingli1129@gmail.com
         level: CAN_MANAGE
+  # --- Azure (Azure Databricks trial workspace e2e-learning, East US 2; see docs/part7_azure_design.md) ---
+  azure_dev:
+    mode: development
+    workspace:
+      host: https://adb-7405618954475016.16.azuredatabricks.net
+    variables:
+      catalog: e2e_dev
+      schema: ${workspace.current_user.short_name}
+      name_suffix: azure-dev
+      serving_model_version: "1"
+  # Deployed only by GitHub Actions (.github/workflows/deploy-azure-prod.yml) as service principal e2e-deployer
+  # (application id 4553f370-…); see docs/part9_cicd_plan.md. People view; changes go through git.
+  azure_prod:
+    mode: production
+    workspace:
+      host: https://adb-7405618954475016.16.azuredatabricks.net
+      # The service principal's folder: one prod copy, whoever deploys.
+      root_path: /Workspace/Users/4553f370-2290-4d8d-ba5d-c022b6f80672/.bundle/${bundle.name}/${bundle.target}
+    run_as:
+      service_principal_name: 4553f370-2290-4d8d-ba5d-c022b6f80672
+    variables:
+      catalog: e2e_prod
+      schema: prod
+      name_suffix: azure-prod
+    permissions:
+      - service_principal_name: 4553f370-2290-4d8d-ba5d-c022b6f80672
+        level: CAN_MANAGE
+      - user_name: keqingli1129@gmail.com
+        level: CAN_VIEW
