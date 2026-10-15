@@ -579,8 +579,9 @@ databricks fs cp -r data/object_storage/<training images folder>/ dbfs:/Volumes/
 **Files:**
 - Modify: `resources/damage_classifier.yml` (add `azure_dev` to the endpoint wrapper)
 
-- [ ] **12.1** `databricks bundle run damage_classifier --profile azure` (all three tasks). It registers **version 1** in this workspace and moves the `prod` alias.
-- [ ] **12.2** Check: `databricks registered-models get <catalog>.dev_<user>_gold.dev_<user>_claims_damage_level --profile azure` shows version 1. Also check that `gold.damage_predictions` has rows.
+- [x] **12.1** `databricks bundle run damage_classifier --profile azure` (all three tasks). It registers **version 1** in this workspace and moves the `prod` alias.
+- [x] **12.2** Check: `databricks registered-models get <catalog>.dev_<user>_gold.dev_<user>_claims_damage_level --profile azure` shows version 1. Also check that `gold.damage_predictions` has rows.
+  > **2026-10-15: blocked on the trial.** Deploying the endpoint fails with `FEATURE_DISABLED: Model serving is not available for trial workspaces.` 12.3 is commented out in `damage_classifier.yml` (uncomment after an upgrade). 12.3/12.4 and Task 13 (the app calls the endpoint) need the workspace upgraded to Premium, which ends the free DBUs. Parts 1–5 in batch, the dashboard and Genie work on the trial.
 - [ ] **12.3** Add to the endpoint wrapper in `resources/damage_classifier.yml`:
 
 ```yaml

@@ -65,3 +65,8 @@ targets:
   prod:
     resources:
       model_serving_endpoints: *serving_endpoints
+  # Commented out: Model Serving is disabled in Azure trial workspaces (FEATURE_DISABLED, 2026-10-15).
+  # Uncomment after upgrading the workspace to Premium; azure_dev serves version 1 (var.serving_model_version).
+  # azure_dev:
+  #   resources:
+  #     model_serving_endpoints: *serving_endpoints
