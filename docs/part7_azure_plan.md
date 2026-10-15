@@ -4,6 +4,8 @@
 
 > **Route chosen 2026-10-14: "like Free Edition".** Part 2 on Azure uses the same stand-in as AWS (job `seed_source_database` + `readChangeFeed` + AUTO CDC), not Azure SQL + Lakeflow Connect. So **Tasks 2, 3, 4, 6 and 8 are skipped** for now (no Azure SQL, no gateway quota, no gateway). **Task 9** runs `seed_source_database` instead of starting the gateway (9.3/9.4 skipped), and **Task 10** uses the AWS test `src/source_database/changes.sql`. Tasks 11–13 are unchanged. Real Lakeflow Connect can be added later: runbook [part7b_lakeflow_connect_switch.md](part7b_lakeflow_connect_switch.md).
 
+> **Done 2026-10-15** (parts 1–5 and 6a on `azure_dev`; endpoint and app blocked on the trial). Summary of every change: [part7_azure_vs_aws.md](part7_azure_vs_aws.md).
+
 **Goal:** deploy this bundle to an Azure Databricks trial workspace as target `azure_dev`, with part 2 running on real Lakeflow Connect (an ingestion gateway reading change tracking from an Azure SQL Database), and parts 1, 3–6 running unchanged.
 
 **Architecture:** see [part7_azure_design.md](part7_azure_design.md). Part 2 and the resources that need data to exist before they can deploy (the serving endpoint, the synced tables and the app) move into **per-target sections** inside their own resource files. Then each target gets only what it can deploy. `azure_dev` adds a gateway and an `ingestion_definition` pipeline under the **same key, `cdc_ingestion`**, so the end-to-end job is unchanged.
