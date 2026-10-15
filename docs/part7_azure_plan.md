@@ -25,9 +25,9 @@
 
 **Why:** everything Azure bills goes on one subscription, and everything we create goes in one resource group, so cleanup is one delete.
 
-- [ ] **1.1** Sign in at https://portal.azure.com with your Gmail Microsoft account. Under **Subscriptions**, check for a subscription. If there isn't one, create **Pay-As-You-Go**.
-- [ ] **1.2** **Cost Management → Budgets → Add:** scope = the subscription, name `e2e-learning`, amount **50**, monthly. Email alerts at **50%** and **90%** (actual cost), sent to your Gmail.
-- [ ] **1.3** **Resource groups → Create:** name `rg-e2e-learning`, region **East US 2**.
+- [x] **1.1** Sign in at https://portal.azure.com with your Gmail Microsoft account. Under **Subscriptions**, check for a subscription. If there isn't one, create **Pay-As-You-Go**.
+- [x] **1.2** **Cost Management → Budgets → Add:** scope = the subscription, name `e2e-learning`, amount **50**, monthly. Email alerts at **50%** and **90%** (actual cost), sent to your Gmail.
+- [x] **1.3** **Resource groups → Create:** name `rg-e2e-learning`, region **East US 2**.
 
 **Check:** the resource group is listed, and the budget shows $0 used.
 
@@ -222,9 +222,9 @@ SELECT name, is_tracked_by_cdc FROM sys.tables WHERE name IN ('customer', 'polic
 
 **Why:** the workspace is the Azure twin of Free Edition. It must be **Hybrid**, because the gateway runs on classic compute.
 
-- [ ] **5.1** **Azure Databricks → Create:** resource group `rg-e2e-learning`, workspace name `e2e-learning`, region **East US 2**, pricing tier **Trial (Premium – 14 Days Free DBUs)**, workspace type **Hybrid**. Keep the default (Databricks-managed) networking. Then **Review + create**. Azure also creates a managed resource group (`databricks-rg-…`); don't touch it.
-- [ ] **5.2** **Launch Workspace** and sign in with the same Gmail Microsoft account. Copy the URL (`https://adb-<id>.<n>.azuredatabricks.net`).
-- [ ] **5.3** Create the CLI profile:
+- [x] **5.1** **Azure Databricks → Create:** resource group `rg-e2e-learning`, workspace name `e2e-learning`, region **East US 2**, pricing tier **Trial (Premium – 14 Days Free DBUs)**, workspace type **Hybrid**. Keep the default (Databricks-managed) networking. Then **Review + create**. Azure also creates a managed resource group (`databricks-rg-…`); don't touch it.
+- [x] **5.2** **Launch Workspace** and sign in with the same Gmail Microsoft account. Copy the URL (`https://adb-<id>.<n>.azuredatabricks.net`).
+- [x] **5.3** Create the CLI profile:
 
 ```bash
 databricks auth login --host https://adb-<id>.<n>.azuredatabricks.net --profile azure
@@ -233,7 +233,7 @@ databricks metastores current --profile azure       # Unity Catalog is attached
 databricks warehouses list --profile azure          # note the starter warehouse's exact name
 ```
 
-- [ ] **5.4** Create the catalog **`e2e_dev`** by hand: Catalog Explorer → **+ → Create catalog** → name `e2e_dev`, type Standard. If it **requires a storage location** (the metastore has no root storage), cancel. Use the **workspace catalog** that Azure created automatically instead (named after the workspace, for example `e2e_learning`). Task 7 then sets `catalog` for `azure_dev` to that name.
+- [x] **5.4** Create the catalog **`e2e_dev`** by hand: Catalog Explorer → **+ → Create catalog** → name `e2e_dev`, type Standard. If it **requires a storage location** (the metastore has no root storage), cancel. Use the **workspace catalog** that Azure created automatically instead (named after the workspace, for example `e2e_learning`). Task 7 then sets `catalog` for `azure_dev` to that name.
 
 **Check:** `databricks catalogs get <catalog> --profile azure` returns it. Write down the catalog name and the warehouse name.
 

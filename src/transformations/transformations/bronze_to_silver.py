@@ -16,19 +16,25 @@ SEVERITY_LEVEL = (
 )
 
 
-@dp.materialized_view(name="claim", comment="Cleaned claims with a numeric severity level.", table_properties=SILVER_PROPERTIES)
+@dp.materialized_view(
+    name="claim", comment="Cleaned claims with a numeric severity level.", table_properties=SILVER_PROPERTIES
+)
 @dp.expect_all_or_drop({"valid_claim_no": "claim_no IS NOT NULL", "valid_claim_amount": "claim_amount >= 0"})
 def claim():
     return spark.read.table(f"{BRONZE}.claim").withColumn("severity_level", SEVERITY_LEVEL)
 
 
-@dp.materialized_view(name="policy", comment="Cleaned policies; premium is never negative.", table_properties=SILVER_PROPERTIES)
+@dp.materialized_view(
+    name="policy", comment="Cleaned policies; premium is never negative.", table_properties=SILVER_PROPERTIES
+)
 @dp.expect_all_or_drop({"valid_policy_no": "policy_no IS NOT NULL", "valid_policy_period": "end_date > start_date"})
 def policy():
     return spark.read.table(f"{BRONZE}.policy").withColumn("premium", F.abs("premium"))
 
 
-@dp.materialized_view(name="customer", comment="Cleaned customers with full name and age.", table_properties=SILVER_PROPERTIES)
+@dp.materialized_view(
+    name="customer", comment="Cleaned customers with full name and age.", table_properties=SILVER_PROPERTIES
+)
 @dp.expect_all_or_drop({"valid_customer_id": "customer_id IS NOT NULL", "valid_email": "email LIKE '%@%'"})
 def customer():
     return (
@@ -54,7 +60,11 @@ def telematics():
     )
 
 
-@dp.table(name="training_images", comment="Training images with their label (ok/minor/major).", table_properties=SILVER_PROPERTIES)
+@dp.table(
+    name="training_images",
+    comment="Training images with their label (ok/minor/major).",
+    table_properties=SILVER_PROPERTIES,
+)
 @dp.expect_all_or_drop({"valid_label": "label IN ('ok', 'minor', 'major')", "non_empty_image": "length > 0"})
 def training_images():
     return (
@@ -64,15 +74,25 @@ def training_images():
     )
 
 
-@dp.table(name="claim_images", comment="Customer-uploaded claim photos with their file name.", table_properties=SILVER_PROPERTIES)
-@dp.expect_all_or_drop({"valid_image_name": "image_name IS NOT NULL AND image_name != ''", "non_empty_image": "length > 0"})
+@dp.table(
+    name="claim_images",
+    comment="Customer-uploaded claim photos with their file name.",
+    table_properties=SILVER_PROPERTIES,
+)
+@dp.expect_all_or_drop(
+    {"valid_image_name": "image_name IS NOT NULL AND image_name != ''", "non_empty_image": "length > 0"}
+)
 def claim_images():
     return spark.readStream.table(f"{BRONZE}.claim_images").withColumn(
         "image_name", F.regexp_extract("path", r"[^/]+$", 0)
     )
 
 
-@dp.table(name="claim_images_metadata", comment="Which image belongs to which claim and car.", table_properties=SILVER_PROPERTIES)
+@dp.table(
+    name="claim_images_metadata",
+    comment="Which image belongs to which claim and car.",
+    table_properties=SILVER_PROPERTIES,
+)
 @dp.expect_all_or_drop({"valid_claim_no": "claim_no IS NOT NULL", "valid_image_id": "image_id IS NOT NULL"})
 def claim_images_metadata():
     return (

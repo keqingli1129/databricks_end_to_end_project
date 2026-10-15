@@ -8,11 +8,7 @@ CHANGE_FEED_COLUMNS = ["_change_type", "_commit_version", "_commit_timestamp"]
 @dp.temporary_view()
 def claim_changes():
     """Every insert/update/delete on the source table; updates keep only the new values."""
-    return (
-        spark.readStream.option("readChangeFeed", "true")
-        .table(SOURCE)
-        .filter("_change_type != 'update_preimage'")
-    )
+    return spark.readStream.option("readChangeFeed", "true").table(SOURCE).filter("_change_type != 'update_preimage'")
 
 
 dp.create_streaming_table(name="claim", comment="Claims from the source database, kept in sync by AUTO CDC.")

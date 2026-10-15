@@ -108,7 +108,9 @@ CLAIM_CHECKS_SCHEMA = """
 )
 def claim_checks():
     claims = spark.read.table(f"{GOLD}.customer_claim_policy_telematics")
-    photos = spark.read.table("claim_images_metadata").groupBy("claim_no").agg(F.first("image_name").alias("image_name"))
+    photos = (
+        spark.read.table("claim_images_metadata").groupBy("claim_no").agg(F.first("image_name").alias("image_name"))
+    )
     predictions = spark.read.table(f"{GOLD}.claim_image_predictions").select(
         "image_name", F.col("damage_prediction").alias("predicted_damage")
     )

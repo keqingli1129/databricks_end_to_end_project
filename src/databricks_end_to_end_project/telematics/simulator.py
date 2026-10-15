@@ -4,7 +4,7 @@ import argparse
 import random
 import time
 from collections.abc import Callable
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from databricks_end_to_end_project.telematics import events, kafka_config
 
@@ -14,7 +14,7 @@ Send = Callable[[str, bytes, bytes], None]  # (topic, key, value)
 def run(send: Send, topic: str, count: int, interval: float, rng: random.Random) -> int:
     """Generate `count` events and hand each one to `send`, waiting `interval` seconds between them."""
     for i in range(count):
-        event = events.generate_event(rng, events.DEFAULT_CHASSIS_NUMBERS, datetime.now(timezone.utc))
+        event = events.generate_event(rng, events.DEFAULT_CHASSIS_NUMBERS, datetime.now(UTC))
         send(topic, event["chassis_number"].encode(), events.to_json(event))
         if i < count - 1:
             time.sleep(interval)
@@ -34,7 +34,7 @@ def _file_send(landing_path: str) -> Send:
     files = WorkspaceClient().files
 
     def send(topic: str, key: bytes, value: bytes) -> None:
-        name = f"{datetime.now(timezone.utc):%Y%m%dT%H%M%S%f}_{key.decode()}.json"
+        name = f"{datetime.now(UTC):%Y%m%dT%H%M%S%f}_{key.decode()}.json"
         files.upload(f"{landing_path}/{name}", BytesIO(value + b"\n"), overwrite=True)
 
     return send

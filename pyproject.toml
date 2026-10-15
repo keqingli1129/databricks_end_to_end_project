@@ -39,6 +39,8 @@ build-backend = "hatchling.build"
 
 [tool.ruff]
 line-length = 120
+# docs/ holds plans and guides; their code snippets record what was run, so ruff leaves them alone.
+extend-exclude = ["docs"]
 # Databricks notebooks and pipelines provide these as globals (no import needed).
 builtins = ["spark", "dbutils", "display"]
 

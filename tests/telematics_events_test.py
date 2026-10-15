@@ -1,10 +1,10 @@
 import json
 import random
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from databricks_end_to_end_project.telematics import events
 
-NOW = datetime(2026, 9, 27, 12, 0, tzinfo=timezone.utc)
+NOW = datetime(2026, 9, 27, 12, 0, tzinfo=UTC)
 CHASSIS = ["CHS000001", "CHS000002"]
 
 

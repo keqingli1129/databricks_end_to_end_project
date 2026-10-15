@@ -1,6 +1,6 @@
+from databricks.sdk.runtime import dbutils
 from pyspark import pipelines as dp
 from pyspark.sql import functions as F
-from databricks.sdk.runtime import dbutils
 
 from databricks_end_to_end_project.telematics import kafka_config
 

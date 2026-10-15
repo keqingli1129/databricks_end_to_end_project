@@ -2,7 +2,7 @@
 
 import json
 import random
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 # Rough bounding box around Houston, TX.
 LAT_RANGE = (29.5, 30.1)
@@ -19,7 +19,7 @@ def generate_event(rng: random.Random, chassis_numbers: list[str], now: datetime
         "speed": round(rng.uniform(0, MAX_SPEED_KMH), 1),
         "latitude": round(rng.uniform(*LAT_RANGE), 6),
         "longitude": round(rng.uniform(*LON_RANGE), 6),
-        "event_timestamp": now.astimezone(timezone.utc).isoformat(),
+        "event_timestamp": now.astimezone(UTC).isoformat(),
     }
 
 
