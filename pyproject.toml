@@ -13,11 +13,15 @@ dependencies = [
 ]
 
 [dependency-groups]
-dev = [
+# What CI installs (.github/workflows/deploy-azure-prod.yml): lint plus the tests, which run on Databricks Connect.
+test = [
     "pytest",
     "ruff",
-    "databricks-dlt",
     "databricks-connect~=18.0.0",
+]
+dev = [
+    { include-group = "test" },
+    "databricks-dlt",
     "ipykernel",
     "geopy==2.4.1",
     "pillow>=11.1.0",

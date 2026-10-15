@@ -652,6 +652,11 @@ dev = [
     { name = "streamlit" },
     { name = "torch" },
 ]
+test = [
+    { name = "databricks-connect" },
+    { name = "pytest" },
+    { name = "ruff" },
+]
 
 [package.metadata]
 requires-dist = [{ name = "confluent-kafka", specifier = ">=2.6" }]
@@ -670,6 +675,11 @@ dev = [
     { name = "ruff" },
     { name = "streamlit", specifier = "==1.65.0" },
     { name = "torch", specifier = ">=2.14.1" },
+]
+test = [
+    { name = "databricks-connect", specifier = "~=18.0.0" },
+    { name = "pytest" },
+    { name = "ruff" },
 ]
 
 [[package]]

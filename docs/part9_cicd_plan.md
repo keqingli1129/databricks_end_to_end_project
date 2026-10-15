@@ -286,7 +286,7 @@ databricks account service-principal-federation-policy create 146817550015497 --
 
 **Why:** `uv sync --dev` installs the CUDA build of `torch`, `mlflow` and `streamlit`. The tests need only pytest, ruff and Databricks Connect. A separate group keeps CI to about a minute. `dev` includes it, so nothing changes locally.
 
-- [ ] **7.1** In `[dependency-groups]`, move the three test tools into a new group and include it from `dev`:
+- [x] **7.1** In `[dependency-groups]`, move the three test tools into a new group and include it from `dev`:
 
 ```toml
 [dependency-groups]
@@ -304,16 +304,16 @@ dev = [
 ]
 ```
 
-- [ ] **7.2** Try CI's install locally in a throw-away environment:
+- [x] **7.2** Try CI's install locally in a throw-away environment:
 
 ```bash
 UV_PROJECT_ENVIRONMENT=/tmp/ci-venv env -u PYTHONPATH uv sync --no-dev --group test --frozen
 UV_PROJECT_ENVIRONMENT=/tmp/ci-venv env -u PYTHONPATH uv run --no-dev --group test pytest
 ```
 
-- [ ] **7.3** `env -u PYTHONPATH uv sync --dev` still works, and `uv.lock` is updated (commit it).
+- [x] **7.3** `env -u PYTHONPATH uv sync --dev` still works, and `uv.lock` is updated (commit it).
 
-**Check:** both test runs pass; `torch` isn't in `/tmp/ci-venv` (`ls /tmp/ci-venv/lib/python3.12/site-packages | grep -c torch` → 0).
+**Check (2026-10-14):** in the throw-away env: 33 packages, **354 MB** (local `.venv`: 6.1 GB), no `torch`/`mlflow`; `ruff check`, `ruff format --check` and **7 tests** pass.
 
 ---
 
