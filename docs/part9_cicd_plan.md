@@ -450,6 +450,7 @@ jobs:
 | `warehouse "Serverless Starter Warehouse" not found` | SP can't see it | Task 3.3 |
 | `run_as` / "service principal user" error | someone other than the SP deployed | only CI deploys prod; a person needs the **Service principal: User** role on `e2e-deployer` to do it |
 | pytest can't start a session | serverless not allowed for the SP | Task 3.4 |
+| `cannot create resources.genie_spaces.claims_genie_space … Table … does not exist` | Genie checks its tables exist; prod has no gold yet (seen on `azure_dev`, 2026-10-14) | expected on the first deploy: everything else is created. Run the pipelines once (the job `smart_claims_end_to_end`), then re-run the workflow |
 
 - [ ] **10.3** Check the workspace:
 

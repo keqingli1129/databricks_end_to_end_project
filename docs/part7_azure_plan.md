@@ -2,6 +2,8 @@
 
 > **How we run this plan:** one step at a time. Claude does a step, explains it, ticks its box, and waits for "go". Claude never runs `git add` or `git commit`; you commit when you want.
 
+> **Route chosen 2026-10-14: "like Free Edition".** Part 2 on Azure uses the same stand-in as AWS (job `seed_source_database` + `readChangeFeed` + AUTO CDC), not Azure SQL + Lakeflow Connect. So **Tasks 2, 3, 4, 6 and 8 are skipped** for now (no Azure SQL, no gateway quota, no gateway). **Task 9** runs `seed_source_database` instead of starting the gateway (9.3/9.4 skipped), and **Task 10** uses the AWS test `src/source_database/changes.sql`. Tasks 11–13 are unchanged. Real Lakeflow Connect can be added later: runbook [part7b_lakeflow_connect_switch.md](part7b_lakeflow_connect_switch.md).
+
 **Goal:** deploy this bundle to an Azure Databricks trial workspace as target `azure_dev`, with part 2 running on real Lakeflow Connect (an ingestion gateway reading change tracking from an Azure SQL Database), and parts 1, 3–6 running unchanged.
 
 **Architecture:** see [part7_azure_design.md](part7_azure_design.md). Part 2 and the resources that need data to exist before they can deploy (the serving endpoint, the synced tables and the app) move into **per-target sections** inside their own resource files. Then each target gets only what it can deploy. `azure_dev` adds a gateway and an `ingestion_definition` pipeline under the **same key, `cdc_ingestion`**, so the end-to-end job is unchanged.
@@ -484,8 +486,9 @@ targets:
 
 ### Task 9: First Azure deploy and part 2 end to end
 
-- [ ] **9.1** `databricks bundle plan -t azure_dev --profile azure`. Read it: schemas, volumes, pipelines and jobs get created; there's no endpoint, synced tables or app yet.
-- [ ] **9.2** `databricks bundle deploy -t azure_dev --profile azure`
+- [x] **9.1** `databricks bundle plan -t azure_dev --profile azure`. Read it: schemas, volumes, pipelines and jobs get created; there's no endpoint, synced tables or app yet.
+- [x] **9.2** `databricks bundle deploy -t azure_dev --profile azure`
+  > **2026-10-14:** 26 of 27 created; the **Genie space fails** until the gold tables exist ("Table … claim_checks does not exist", 403). Chosen: live with it (option B). Every `azure_dev` deploy shows this error until the first `transformations` run has made gold; then a redeploy creates the Genie space.
 - [ ] **9.3** Start the gateway: `databricks bundle run sql_server_gateway --profile azure --no-wait`. In the UI (Jobs & Pipelines → `[dev …] sql_server_gateway`), watch it start; the first classic VM start takes about 5–10 minutes. Note whether the update **keeps running** (gateway behaviour) or finishes, because development mode dropped `continuous`. If it finishes, write that down: each session then starts with this step.
 - [ ] **9.4** Check the gateway event log for connection errors. If it can't reach `<server>.database.windows.net:1433`, re-check Task 2.3's "Allow Azure services".
 
