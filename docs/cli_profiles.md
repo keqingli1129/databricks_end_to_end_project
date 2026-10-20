@@ -14,7 +14,7 @@ Three CLI profiles are set up on this laptop, all checked valid with `databricks
 
 ## Sign in
 
-Each OAuth login opens a browser tab and saves the profile to `~/.databrickscfg` when you finish. Re-run the same command to sign in again when a token expires.
+Each OAuth login opens a browser tab and, when you finish, saves the profile to `~/.databrickscfg` and its tokens to Windows Credential Manager (`databricks-cli:<profile>`). Re-run the same command to sign in again when a token expires.
 
 **`azure`: sign in with your Gmail account**
 
@@ -32,7 +32,13 @@ databricks auth login --host https://accounts.azuredatabricks.net --account-id 1
 2. On the Microsoft page, pick **Use another account** if it offers Gmail, then approve the Microsoft Authenticator prompt.
 3. Wait for the success page; the CLI prints `Profile azure-account was successfully saved`.
 
-**`DEFAULT`** uses a personal access token, so it needs no browser login.
+**`DEFAULT`: paste a personal access token, no browser login**
+
+```bash
+databricks configure --profile DEFAULT
+```
+
+It asks for the host (`https://dbc-b5c9918e-c2d2.cloud.databricks.com`) and then the token. Make a new token first in the AWS workspace under **Settings → Developer → Access tokens**.
 
 ## Check
 
